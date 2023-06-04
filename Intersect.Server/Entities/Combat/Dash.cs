@@ -1,5 +1,4 @@
 ﻿using Intersect.Enums;
-using Intersect.Server.General;
 using Intersect.Server.Networking;
 using Intersect.Utilities;
 
@@ -9,29 +8,24 @@ namespace Intersect.Server.Entities.Combat
     public partial class Dash
     {
 
-        public byte Direction;
+        public Direction Direction;
 
-        public int DistanceTraveled;
-
-        public byte Facing;
+        public Direction Facing;
 
         public int Range;
-
-        public long TransmittionTimer;
 
         public Dash(
             Entity en,
             int range,
-            byte direction,
+            Direction direction,
             bool blockPass = false,
             bool activeResourcePass = false,
             bool deadResourcePass = false,
             bool zdimensionPass = false
         )
         {
-            DistanceTraveled = 0;
             Direction = direction;
-            Facing = (byte) en.Dir;
+            Facing = en.Dir;
 
             CalculateRange(en, range, blockPass, activeResourcePass, deadResourcePass, zdimensionPass);
             if (Range <= 0)
@@ -39,10 +33,9 @@ namespace Intersect.Server.Entities.Combat
                 return;
             } //Remove dash instance if no where to dash
 
-            TransmittionTimer = Timing.Global.Milliseconds + (long) ((float) Options.MaxDashSpeed / (float) Range);
             PacketSender.SendEntityDash(
                 en, en.MapId, (byte) en.X, (byte) en.Y, (int) (Options.MaxDashSpeed * (Range / 10f)),
-                Direction == Facing ? (sbyte) Direction : (sbyte) -1
+                Direction == Facing ? Direction : Direction.None
             );
 
             en.MoveTimer = Timing.Global.Milliseconds + Options.MaxDashSpeed;
@@ -78,17 +71,17 @@ namespace Intersect.Server.Entities.Combat
                     return;
                 } //Check for active resources
 
-                if (n == (int) EntityTypes.Resource && activeResourcePass == false)
+                if (n == (int) EntityType.Resource && activeResourcePass == false)
                 {
                     return;
                 } //Check for dead resources
 
-                if (n == (int) EntityTypes.Resource && deadResourcePass == false)
+                if (n == (int) EntityType.Resource && deadResourcePass == false)
                 {
                     return;
                 } //Check for players and solid events
 
-                if (n == (int) EntityTypes.Player || n == (int) EntityTypes.Event)
+                if (n == (int) EntityType.Player || n == (int) EntityType.Event)
                 {
                     return;
                 }

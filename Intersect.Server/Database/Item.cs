@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 using Intersect.Enums;
 using Intersect.GameObjects;
+using Intersect.Network.Packets.Server;
 using Intersect.Server.Database.PlayerData.Players;
 using Intersect.Utilities;
 
@@ -18,46 +19,43 @@ namespace Intersect.Server.Database
 
         public Item()
         {
+            Properties = new ItemProperties();
         }
 
-        public Item(Guid itemId, int quantity, bool incStatBuffs = true) : this(
-            itemId, quantity, null, null, incStatBuffs
+        public Item(Guid itemId, int quantity, ItemProperties properties = null) : this(
+            itemId, quantity, null, null, properties
         )
         {
         }
 
-        public Item(Guid itemId, int quantity, Guid? bagId, Bag bag, bool includeStatBuffs = true)
+        public Item(Guid itemId, int quantity, Guid? bagId, Bag bag, ItemProperties properties = null)
         {
             ItemId = itemId;
             Quantity = quantity;
             BagId = bagId;
             Bag = bag;
+            Properties = properties ?? new ItemProperties();
 
             var descriptor = ItemBase.Get(ItemId);
-            if (descriptor == null || !includeStatBuffs)
+            if (descriptor == null || properties != null)
             {
                 return;
             }
 
-            if (descriptor.ItemType != ItemTypes.Equipment)
+            if (descriptor.ItemType != ItemType.Equipment)
             {
                 return;
             }
 
-            for (var i = 0; i < (int) Stats.StatCount; i++)
+            for (var i = 0; i < (int)Stat.StatCount; i++)
             {
-                // TODO: What the fuck?
-                StatBuffs[i] = Randomization.Next(-descriptor.StatGrowth, descriptor.StatGrowth + 1);
+                Properties.StatModifiers[i] = Randomization.Next(-descriptor.StatGrowth, descriptor.StatGrowth + 1);
             }
         }
 
         public Item(Item item) : this(item.ItemId, item.Quantity, item.BagId, item.Bag)
         {
-            for (var i = 0; i < (int) Stats.StatCount; i++)
-            {
-                StatBuffs[i] = item.StatBuffs[i];
-            }
-
+            Properties = new ItemProperties(item.Properties);
             DropChance = item.DropChance;
         }
         
@@ -74,16 +72,16 @@ namespace Intersect.Server.Database
 
         public int Quantity { get; set; }
 
-        [Column("StatBuffs")]
-        [JsonIgnore]
-        public string StatBuffsJson
-        {
-            get => DatabaseUtils.SaveIntArray(StatBuffs, (int) Stats.StatCount);
-            set => StatBuffs = DatabaseUtils.LoadIntArray(value, (int) Stats.StatCount);
-        }
-
         [NotMapped]
-        public int[] StatBuffs { get; set; } = new int[(int) Stats.StatCount];
+        public ItemProperties Properties { get; set; }
+
+        [Column("ItemProperties")]
+        [JsonIgnore]
+        public string ItemPropertiesJson
+        {
+            get => JsonConvert.SerializeObject(Properties);
+            set => Properties = JsonConvert.DeserializeObject<ItemProperties>(value ?? string.Empty) ?? new ItemProperties();
+        }
 
         [JsonIgnore]
         [NotMapped]
@@ -97,10 +95,7 @@ namespace Intersect.Server.Database
             Quantity = item.Quantity;
             BagId = item.BagId;
             Bag = item.Bag;
-            for (var i = 0; i < (int) Stats.StatCount; i++)
-            {
-                StatBuffs[i] = item.StatBuffs[i];
-            }
+            Properties = new ItemProperties(item.Properties);
         }
 
         public string Data()
@@ -125,7 +120,7 @@ namespace Intersect.Server.Database
             if (bag == null)
             {
                 var descriptor = Descriptor;
-                if (descriptor?.ItemType == ItemTypes.Bag)
+                if (descriptor?.ItemType == ItemType.Bag)
                 {
                     bag = Bag.GetBag(BagId ?? Guid.Empty);
                     bag?.ValidateSlots();

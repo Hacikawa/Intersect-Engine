@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 using Intersect.Client.Core;
 using Intersect.Client.Framework.File_Management;
-using Intersect.Client.Framework.Graphics;
 using Intersect.Client.Framework.Gwen;
 using Intersect.Client.Framework.Gwen.Control;
 using Intersect.Client.Framework.Gwen.Control.EventArguments;
@@ -12,6 +11,7 @@ using Intersect.Client.Localization;
 using Intersect.Client.Networking;
 using Intersect.Enums;
 using Intersect.GameObjects;
+using Intersect.Network.Packets.Server;
 
 namespace Intersect.Client.Interface.Game.Character
 {
@@ -54,7 +54,7 @@ namespace Intersect.Client.Interface.Game.Character
 
         Label mDefenseLabel;
 
-        private int[] mEmptyStatBoost = new int[(int)Stats.StatCount];
+        private ItemProperties mItemProperties = null;
 
         Label mMagicRstLabel;
 
@@ -188,27 +188,27 @@ namespace Intersect.Client.Interface.Game.Character
         //Update Button Event Handlers
         void _addMagicResistBtn_Clicked(Base sender, ClickedEventArgs arguments)
         {
-            PacketSender.SendUpgradeStat((int) Stats.MagicResist);
+            PacketSender.SendUpgradeStat((int) Stat.MagicResist);
         }
 
         void _addAbilityPwrBtn_Clicked(Base sender, ClickedEventArgs arguments)
         {
-            PacketSender.SendUpgradeStat((int) Stats.AbilityPower);
+            PacketSender.SendUpgradeStat((int) Stat.AbilityPower);
         }
 
         void _addSpeedBtn_Clicked(Base sender, ClickedEventArgs arguments)
         {
-            PacketSender.SendUpgradeStat((int) Stats.Speed);
+            PacketSender.SendUpgradeStat((int) Stat.Speed);
         }
 
         void _addDefenseBtn_Clicked(Base sender, ClickedEventArgs arguments)
         {
-            PacketSender.SendUpgradeStat((int) Stats.Defense);
+            PacketSender.SendUpgradeStat((int) Stat.Defense);
         }
 
         void _addAttackBtn_Clicked(Base sender, ClickedEventArgs arguments)
         {
-            PacketSender.SendUpgradeStat((int) Stats.Attack);
+            PacketSender.SendUpgradeStat((int) Stat.Attack);
         }
 
         //Methods
@@ -326,40 +326,40 @@ namespace Intersect.Client.Interface.Game.Character
             }
 
             mAttackLabel.SetText(
-                Strings.Character.stat0.ToString(Strings.Combat.stat0, Globals.Me.Stat[(int) Stats.Attack])
+                Strings.Character.stat0.ToString(Strings.Combat.stat0, Globals.Me.Stat[(int) Stat.Attack])
             );
 
             mDefenseLabel.SetText(
-                Strings.Character.stat2.ToString(Strings.Combat.stat2, Globals.Me.Stat[(int) Stats.Defense])
+                Strings.Character.stat2.ToString(Strings.Combat.stat2, Globals.Me.Stat[(int) Stat.Defense])
             );
 
             mSpeedLabel.SetText(
-                Strings.Character.stat4.ToString(Strings.Combat.stat4, Globals.Me.Stat[(int) Stats.Speed])
+                Strings.Character.stat4.ToString(Strings.Combat.stat4, Globals.Me.Stat[(int) Stat.Speed])
             );
 
             mAbilityPwrLabel.SetText(
-                Strings.Character.stat1.ToString(Strings.Combat.stat1, Globals.Me.Stat[(int) Stats.AbilityPower])
+                Strings.Character.stat1.ToString(Strings.Combat.stat1, Globals.Me.Stat[(int) Stat.AbilityPower])
             );
 
             mMagicRstLabel.SetText(
-                Strings.Character.stat3.ToString(Strings.Combat.stat3, Globals.Me.Stat[(int) Stats.MagicResist])
+                Strings.Character.stat3.ToString(Strings.Combat.stat3, Globals.Me.Stat[(int) Stat.MagicResist])
             );
 
             mPointsLabel.SetText(Strings.Character.points.ToString(Globals.Me.StatPoints));
             mAddAbilityPwrBtn.IsHidden = Globals.Me.StatPoints == 0 ||
-                                         Globals.Me.Stat[(int) Stats.AbilityPower] == Options.MaxStatValue;
+                                         Globals.Me.Stat[(int) Stat.AbilityPower] == Options.MaxStatValue;
 
             mAddAttackBtn.IsHidden =
-                Globals.Me.StatPoints == 0 || Globals.Me.Stat[(int) Stats.Attack] == Options.MaxStatValue;
+                Globals.Me.StatPoints == 0 || Globals.Me.Stat[(int) Stat.Attack] == Options.MaxStatValue;
 
             mAddDefenseBtn.IsHidden = Globals.Me.StatPoints == 0 ||
-                                      Globals.Me.Stat[(int) Stats.Defense] == Options.MaxStatValue;
+                                      Globals.Me.Stat[(int) Stat.Defense] == Options.MaxStatValue;
 
             mAddMagicResistBtn.IsHidden = Globals.Me.StatPoints == 0 ||
-                                          Globals.Me.Stat[(int) Stats.MagicResist] == Options.MaxStatValue;
+                                          Globals.Me.Stat[(int) Stat.MagicResist] == Options.MaxStatValue;
 
             mAddSpeedBtn.IsHidden =
-                Globals.Me.StatPoints == 0 || Globals.Me.Stat[(int) Stats.Speed] == Options.MaxStatValue;
+                Globals.Me.StatPoints == 0 || Globals.Me.Stat[(int) Stat.Speed] == Options.MaxStatValue;
 
             UpdateExtraBuffs();
 
@@ -372,19 +372,19 @@ namespace Intersect.Client.Interface.Game.Character
                         Items[i]
                             .Update(
                                 Globals.Me.Inventory[Globals.Me.MyEquipment[i]].ItemId,
-                                Globals.Me.Inventory[Globals.Me.MyEquipment[i]].StatBuffs
+                                Globals.Me.Inventory[Globals.Me.MyEquipment[i]].ItemProperties
                             );
 
                         UpdateExtraBuffs(Globals.Me.Inventory[Globals.Me.MyEquipment[i]].ItemId);
                     }
                     else
                     {
-                        Items[i].Update(Guid.Empty, mEmptyStatBoost);
+                        Items[i].Update(Guid.Empty, mItemProperties);
                     }
                 }
                 else
                 {
-                    Items[i].Update(Guid.Empty, mEmptyStatBoost);
+                    Items[i].Update(Guid.Empty, mItemProperties);
                 }
             }
         }
@@ -449,7 +449,7 @@ namespace Intersect.Client.Interface.Game.Character
             }
 
             //Getting extra buffs
-            if (item.Effects.Find(effect => effect.Type != EffectType.None && effect.Percentage > 0) != default)
+            if (item.Effects.Find(effect => effect.Type != ItemEffect.None && effect.Percentage > 0) != default)
             {
                 foreach(var effect in item.Effects)
                 {
@@ -460,32 +460,32 @@ namespace Intersect.Client.Interface.Game.Character
 
                     switch (effect.Type)
                     {
-                        case EffectType.CooldownReduction:
+                        case ItemEffect.CooldownReduction:
                             CooldownAmount += effect.Percentage;
                             mCooldownReduction?.SetText(Strings.Character.CooldownReduction.ToString(CooldownAmount));
 
                             break;
-                        case EffectType.Lifesteal:
+                        case ItemEffect.Lifesteal:
                             LifeStealAmount += effect.Percentage;
                             mLifeSteal?.SetText(Strings.Character.Lifesteal.ToString(LifeStealAmount));
 
                             break;
-                        case EffectType.Tenacity:
+                        case ItemEffect.Tenacity:
                             TenacityAmount += effect.Percentage;
                             mTenacity?.SetText(Strings.Character.Tenacity.ToString(TenacityAmount));
 
                             break;
-                        case EffectType.Luck:
+                        case ItemEffect.Luck:
                             LuckAmount += effect.Percentage;
                             mLuck?.SetText(Strings.Character.Luck.ToString(LuckAmount));
 
                             break;
-                        case EffectType.EXP:
+                        case ItemEffect.EXP:
                             ExtraExpAmount += effect.Percentage;
                             mExtraExp?.SetText(Strings.Character.ExtraExp.ToString(ExtraExpAmount));
 
                             break;
-                        case EffectType.Manasteal:
+                        case ItemEffect.Manasteal:
                             ManaStealAmount += effect.Percentage;
                             mManaSteal?.SetText(Strings.Character.Manasteal.ToString(ManaStealAmount));
 

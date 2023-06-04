@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 using Intersect.Client.Framework.GenericClasses;
 using Intersect.Client.Framework.Gwen.Control;
@@ -93,7 +93,7 @@ namespace Intersect.Client.Interface.Game.Bank
 
         void pnl_Clicked(Base sender, ClickedEventArgs arguments)
         {
-            mClickTime = Timing.Global.Milliseconds + 500;
+            mClickTime = Timing.Global.MillisecondsUtc + 500;
         }
 
         void pnl_HoverLeave(Base sender, EventArgs arguments)
@@ -134,7 +134,7 @@ namespace Intersect.Client.Interface.Game.Bank
             {
                 mDescWindow = new ItemDescriptionWindow(
                     Globals.Bank[mMySlot].Base, Globals.Bank[mMySlot].Quantity, mBankWindow.X, mBankWindow.Y,
-                    Globals.Bank[mMySlot].StatBuffs
+                    Globals.Bank[mMySlot].ItemProperties
                 );
             }
         }
@@ -192,7 +192,7 @@ namespace Intersect.Client.Interface.Game.Bank
                         mCanDrag = true;
                         mMouseX = -1;
                         mMouseY = -1;
-                        if (Timing.Global.Milliseconds < mClickTime)
+                        if (Timing.Global.MillisecondsUtc < mClickTime)
                         {
                             //Globals.Me.TryUseItem(_mySlot);
                             mClickTime = 0;

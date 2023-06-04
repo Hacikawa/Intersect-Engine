@@ -9,7 +9,6 @@ using Intersect.Client.Framework.Input;
 using Intersect.Client.General;
 using Intersect.Client.Interface.Game.DescriptionWindows;
 using Intersect.Client.Localization;
-using Intersect.Client.Networking;
 using Intersect.Configuration;
 using Intersect.GameObjects;
 using Intersect.Utilities;
@@ -115,7 +114,7 @@ namespace Intersect.Client.Interface.Game.Inventory
 
         void pnl_Clicked(Base sender, ClickedEventArgs arguments)
         {
-            mClickTime = Timing.Global.Milliseconds + 500;
+            mClickTime = Timing.Global.MillisecondsUtc + 500;
         }
 
         void pnl_RightClicked(Base sender, ClickedEventArgs arguments)
@@ -189,7 +188,7 @@ namespace Intersect.Client.Interface.Game.Inventory
                 {
                     mDescWindow = new ItemDescriptionWindow(
                         Globals.Me.Inventory[mMySlot].Base, Globals.Me.Inventory[mMySlot].Quantity, mInventoryWindow.X,
-                        mInventoryWindow.Y, Globals.Me.Inventory[mMySlot].StatBuffs
+                        mInventoryWindow.Y, Globals.Me.Inventory[mMySlot].ItemProperties
                     );
                 }
             }
@@ -216,7 +215,7 @@ namespace Intersect.Client.Interface.Game.Inventory
                     {
                         mDescWindow = new ItemDescriptionWindow(
                             Globals.Me.Inventory[mMySlot].Base, Globals.Me.Inventory[mMySlot].Quantity,
-                            mInventoryWindow.X, mInventoryWindow.Y, Globals.Me.Inventory[mMySlot].StatBuffs, "",
+                            mInventoryWindow.X, mInventoryWindow.Y, Globals.Me.Inventory[mMySlot].ItemProperties, "",
                             Strings.Shop.sellsfor.ToString(shopItem.CostItemQuantity, hoveredItem.Name)
                         );
                     }
@@ -228,7 +227,7 @@ namespace Intersect.Client.Interface.Game.Inventory
                     {
                         mDescWindow = new ItemDescriptionWindow(
                             Globals.Me.Inventory[mMySlot].Base, Globals.Me.Inventory[mMySlot].Quantity,
-                            mInventoryWindow.X, mInventoryWindow.Y, Globals.Me.Inventory[mMySlot].StatBuffs, "",
+                            mInventoryWindow.X, mInventoryWindow.Y, Globals.Me.Inventory[mMySlot].ItemProperties, "",
                             Strings.Shop.sellsfor.ToString(invItem.Base.Price.ToString(), costItem.Name)
                         );
                     }
@@ -238,7 +237,7 @@ namespace Intersect.Client.Interface.Game.Inventory
                     if (invItem?.Base != null)
                     {
                         mDescWindow = new ItemDescriptionWindow(
-                            invItem.Base, invItem.Quantity, mInventoryWindow.X, mInventoryWindow.Y, invItem.StatBuffs,
+                            invItem.Base, invItem.Quantity, mInventoryWindow.X, mInventoryWindow.Y, invItem.ItemProperties,
                             "", Strings.Shop.wontbuy
                         );
                     }
@@ -355,7 +354,7 @@ namespace Intersect.Client.Interface.Game.Inventory
                         mCanDrag = true;
                         mMouseX = -1;
                         mMouseY = -1;
-                        if (Timing.Global.Milliseconds < mClickTime)
+                        if (Timing.Global.MillisecondsUtc < mClickTime)
                         {
                             mClickTime = 0;
                         }

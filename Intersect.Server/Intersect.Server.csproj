@@ -14,6 +14,7 @@
     <AssemblyName>Intersect Server</AssemblyName>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <FileAlignment>512</FileAlignment>
+    <DebugType>embedded</DebugType>
     <GenerateRuntimeConfigurationFiles>True</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
 
@@ -22,8 +23,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Migrations\Game\20221015235919_MultipleBonusEffectsMigration.cs" />
-    <Compile Remove="Migrations\Game\20221015235919_MultipleBonusEffectsMigration.Designer.cs" />
     <Compile Remove="Networking\IntersectNetworkServer.cs" />
     <Compile Remove="Networking\IntersectNetworkSocket.cs" />
   </ItemGroup>
@@ -125,7 +124,7 @@
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3.osx" Version="1.1.11" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3.v110_xp" Version="1.1.11" />
     <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3.net45" Version="1.1.11" />
-    <PackageReference Include="Swashbuckle.Core" Version="5.6.0" />
+    <!-- <PackageReference Include="Swashbuckle.Core" Version="5.6.0" /> -->
     <PackageReference Include="System.Text.Encodings.Web" Version="6.0.0" />
     <PackageReference Include="System.Text.Json" Version="6.0.6" />
     <PackageReference Include="TaskParallelLibrary" Version="1.0.2856.0" />

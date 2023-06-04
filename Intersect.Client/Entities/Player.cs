@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using Intersect.Client.Core;
 using Intersect.Client.Core.Controls;
 using Intersect.Client.Entities.Events;
@@ -23,6 +22,7 @@ using Intersect.GameObjects;
 using Intersect.GameObjects.Maps;
 using Intersect.Network.Packets.Server;
 using Intersect.Utilities;
+using MapAttribute = Intersect.Enums.MapAttribute;
 
 namespace Intersect.Client.Entities
 {
@@ -48,6 +48,8 @@ namespace Intersect.Client.Entities
                 LoadAnimationTexture(Sprite ?? TransformedSprite, SpriteAnimations.Attack);
             }
         }
+
+        public Access AccessLevel { get; set; }
 
         public long Experience { get; set; } = 0;
 
@@ -87,7 +89,7 @@ namespace Intersect.Client.Entities
 
         public Guid TargetIndex { get; set; }
 
-        TargetTypes IPlayer.TargetType => (TargetTypes)TargetType;
+        TargetType IPlayer.TargetType => (TargetType)TargetType;
 
         public int TargetType { get; set; }
 
@@ -136,7 +138,7 @@ namespace Intersect.Client.Entities
         /// </summary>
         public GuildMember[] GuildMembers = new GuildMember[0];
 
-        public Player(Guid id, PlayerEntityPacket packet) : base(id, packet, EntityTypes.Player)
+        public Player(Guid id, PlayerEntityPacket packet) : base(id, packet, EntityType.Player)
         {
             for (var i = 0; i < Options.Instance.PlayerOpts.HotbarSlotCount; i++)
             {
@@ -189,7 +191,6 @@ namespace Intersect.Client.Entities
 
         public bool IsFriend(IPlayer player)
         {
-            // TODO: Friend List is updating only when opening it's GUI Window? It Should be updated upon login.
             return Friends.Any(
                 friend => player != null &&
                           string.Equals(player.Name, friend.Name, StringComparison.CurrentCultureIgnoreCase));
@@ -210,7 +211,7 @@ namespace Intersect.Client.Entities
             return Party.Count > 0;
         }
 
-        public bool IsInMyParty(IPlayer player) => IsInMyParty(player.Id);
+        public bool IsInMyParty(IPlayer player) => player != null && IsInMyParty(player.Id);
 
         public bool IsInMyParty(Guid id) => Party.Any(member => member.Id == id);
 
@@ -252,7 +253,7 @@ namespace Intersect.Client.Entities
                     }
                     else if (!Globals.Me.TryAttack())
                     {
-                        if (Globals.Me.AttackTimer < Timing.Global.Milliseconds)
+                        if (!Globals.Me.IsAttacking)
                         {
                             Globals.Me.AttackTimer = Timing.Global.Milliseconds + Globals.Me.CalculateAttackTime();
                         }
@@ -269,7 +270,7 @@ namespace Intersect.Client.Entities
             if (TargetBox == default && this == Globals.Me && Interface.Interface.GameUi != default)
             {
                 // If for WHATEVER reason the box hasn't been created, create it.
-                TargetBox = new EntityBox(Interface.Interface.GameUi.GameCanvas, EntityTypes.Player, null);
+                TargetBox = new EntityBox(Interface.Interface.GameUi.GameCanvas, EntityType.Player, null);
                 TargetBox.Hide();
             }
             else if (TargetIndex != default)
@@ -305,7 +306,7 @@ namespace Intersect.Client.Entities
             var playerPacket = (PlayerEntityPacket)packet;
             Gender = playerPacket.Gender;
             Class = playerPacket.ClassId;
-            Aggression = playerPacket.AccessLevel;
+            AccessLevel = playerPacket.AccessLevel;
             CombatTimer = playerPacket.CombatTimeRemaining + Timing.Global.Milliseconds;
             Guild = playerPacket.Guild;
             Rank = playerPacket.GuildRank;
@@ -324,7 +325,7 @@ namespace Intersect.Client.Entities
 
             if (this == Globals.Me && TargetBox == null && Interface.Interface.GameUi != null)
             {
-                TargetBox = new EntityBox(Interface.Interface.GameUi.GameCanvas, EntityTypes.Player, null);
+                TargetBox = new EntityBox(Interface.Interface.GameUi.GameCanvas, EntityType.Player, null);
                 TargetBox.Hide();
             }
         }
@@ -463,21 +464,21 @@ namespace Intersect.Client.Entities
                         var itemBase = ItemBase.Get(itm.ItemId);
                         if (itemBase != null)
                         {
-                            if (itemBase.ItemType == ItemTypes.Bag)
+                            if (itemBase.ItemType == ItemType.Bag)
                             {
                                 if (hotbarInstance.BagId == itm.BagId)
                                 {
                                     break;
                                 }
                             }
-                            else if (itemBase.ItemType == ItemTypes.Equipment)
+                            else if (itemBase.ItemType == ItemType.Equipment)
                             {
                                 if (hotbarInstance.PreferredStatBuffs != null)
                                 {
                                     var statMatch = true;
                                     for (var s = 0; s < hotbarInstance.PreferredStatBuffs.Length; s++)
                                     {
-                                        if (itm.StatBuffs[s] != hotbarInstance.PreferredStatBuffs[s])
+                                        if (itm.ItemProperties.StatModifiers[s] != hotbarInstance.PreferredStatBuffs[s])
                                         {
                                             statMatch = false;
                                         }
@@ -1094,14 +1095,14 @@ namespace Intersect.Client.Entities
         public void AddToHotbar(int hotbarSlot, sbyte itemType, int itemSlot)
         {
             Hotbar[hotbarSlot].ItemOrSpellId = Guid.Empty;
-            Hotbar[hotbarSlot].PreferredStatBuffs = new int[(int)Stats.StatCount];
+            Hotbar[hotbarSlot].PreferredStatBuffs = new int[(int)Enums.Stat.StatCount];
             if (itemType == 0)
             {
                 var item = Inventory[itemSlot];
                 if (item != null)
                 {
                     Hotbar[hotbarSlot].ItemOrSpellId = item.ItemId;
-                    Hotbar[hotbarSlot].PreferredStatBuffs = item.StatBuffs;
+                    Hotbar[hotbarSlot].PreferredStatBuffs = item.ItemProperties.StatModifiers;
                 }
             }
             else if (itemType == 1)
@@ -1142,7 +1143,7 @@ namespace Intersect.Client.Entities
                 {
                     if (Maps.MapInstance.Get(MapId) != null && Maps.MapInstance.Get(MapId).Attributes[X, Y] != null)
                     {
-                        if (Maps.MapInstance.Get(MapId).Attributes[X, Y].Type == MapAttributes.ZDimension)
+                        if (Maps.MapInstance.Get(MapId).Attributes[X, Y].Type == MapAttribute.ZDimension)
                         {
                             if (((MapZDimensionAttribute)Maps.MapInstance.Get(MapId).Attributes[X, Y]).GatewayTo > 0)
                             {
@@ -1186,28 +1187,35 @@ namespace Intersect.Client.Entities
                 movex = 1;
             }
 
-
-            Globals.Me.MoveDir = -1;
+            Globals.Me.MoveDir = Direction.None;
             if (movex != 0f || movey != 0f)
             {
+                var diagonalMovement = movex != 0 && Options.Instance.MapOpts.EnableDiagonalMovement;
                 if (movey < 0)
                 {
-                    Globals.Me.MoveDir = 1;
+                    if (diagonalMovement)
+                    {
+                        Globals.Me.MoveDir = movex < 0 ? Direction.DownLeft : Direction.DownRight;
+                    }
+                    else
+                    {
+                        Globals.Me.MoveDir = Direction.Down;
+                    }
                 }
-
-                if (movey > 0)
+                else if (movey > 0)
                 {
-                    Globals.Me.MoveDir = 0;
+                    if (diagonalMovement)
+                    {
+                        Globals.Me.MoveDir = movex < 0 ? Direction.UpLeft : Direction.UpRight;
+                    }
+                    else
+                    {
+                        Globals.Me.MoveDir = Direction.Up;
+                    }
                 }
-
-                if (movex < 0)
+                else
                 {
-                    Globals.Me.MoveDir = 2;
-                }
-
-                if (movex > 0)
-                {
-                    Globals.Me.MoveDir = 3;
+                    Globals.Me.MoveDir = movex < 0 ? Direction.Left : Direction.Right;
                 }
             }
             
@@ -1266,7 +1274,7 @@ namespace Intersect.Client.Entities
             //Check for taunt status if so don't allow to change target
             for (var i = 0; i < Status.Count; i++)
             {
-                if (Status[i].Type == StatusTypes.Taunt)
+                if (Status[i].Type == SpellEffect.Taunt)
                 {
                     return;
                 }
@@ -1279,7 +1287,7 @@ namespace Intersect.Client.Entities
                 return;
             }
             var currentMap = Globals.Me.MapInstance as MapInstance;
-            var canTargetPlayers = currentMap.ZoneType != MapZones.Safe;
+            var canTargetPlayers = currentMap.ZoneType != MapZone.Safe;
 
             // Build a list of Entities to select from with positions if our list is either old, we've moved or changed maps somehow.
             if (
@@ -1311,11 +1319,11 @@ namespace Intersect.Client.Entities
 
                     // Check if we are allowed to target players here, if we're not and this is a player then skip!
                     // If we are, check to see if they're our party or nation member, then exclude them. We're friendly happy people here.
-                    if (!canTargetPlayers && en.Value.Type == EntityTypes.Player)
+                    if (!canTargetPlayers && en.Value.Type == EntityType.Player)
                     {
                         continue;
                     }
-                    else if (canTargetPlayers && en.Value.Type == EntityTypes.Player)
+                    else if (canTargetPlayers && en.Value.Type == EntityType.Player)
                     {
                         var player = en.Value as Player;
                         if (IsInMyParty(player))
@@ -1324,7 +1332,7 @@ namespace Intersect.Client.Entities
                         }
                     }
 
-                    if (en.Value.Type == EntityTypes.GlobalEntity || en.Value.Type == EntityTypes.Player)
+                    if (en.Value.Type == EntityType.GlobalEntity || en.Value.Type == EntityType.Player)
                     {
                         // Already in our list?
                         if (mlastTargetList.ContainsKey(en.Value))
@@ -1352,43 +1360,8 @@ namespace Intersect.Client.Entities
                 mlastTargetScanLocation = new Point(X, Y);
             }
 
-            // Find all valid entities in the direction we are facing.
-            var validEntities = Array.Empty<KeyValuePair<Entity, TargetInfo>>();
-
-            // TODO: Expose option to users
-            if (Globals.Database.TargetAccountDirection)
-            {
-                switch (Dir)
-                {
-                    case (byte)Directions.Up:
-                        validEntities = mlastTargetList.Where(en =>
-                            ((en.Key.MapId == MapId || en.Key.MapId == currentMap.Left || en.Key.MapId == currentMap.Right) && en.Key.Y < Y) || en.Key.MapId == currentMap.Down)
-                            .ToArray();
-                        break;
-
-                    case (byte)Directions.Down:
-                        validEntities = mlastTargetList.Where(en =>
-                            ((en.Key.MapId == MapId || en.Key.MapId == currentMap.Left || en.Key.MapId == currentMap.Right) && en.Key.Y > Y) || en.Key.MapId == currentMap.Up)
-                            .ToArray();
-                        break;
-
-                    case (byte)Directions.Left:
-                        validEntities = mlastTargetList.Where(en =>
-                            ((en.Key.MapId == MapId || en.Key.MapId == currentMap.Up || en.Key.MapId == currentMap.Down) && en.Key.X < X) || en.Key.MapId == currentMap.Left)
-                            .ToArray();
-                        break;
-
-                    case (byte)Directions.Right:
-                        validEntities = mlastTargetList.Where(en =>
-                                    ((en.Key.MapId == MapId || en.Key.MapId == currentMap.Up || en.Key.MapId == currentMap.Down) && en.Key.X > X) || en.Key.MapId == currentMap.Right)
-                                    .ToArray();
-                        break;
-                }
-            }
-            else
-            {
-                validEntities = mlastTargetList.ToArray();
-            }
+            // Find valid entities.
+            var validEntities = mlastTargetList.ToArray();
 
             // Reduce the number of targets down to what is in our allowed range.
             validEntities = validEntities.Where(en => en.Value.DistanceTo <= Options.Combat.MaxPlayerAutoTargetRadius).ToArray();
@@ -1467,15 +1440,15 @@ namespace Intersect.Client.Entities
 
             if (en is Player)
             {
-                TargetBox?.SetEntity(en, EntityTypes.Player);
+                TargetBox?.SetEntity(en, EntityType.Player);
             }
             else if (en is Event)
             {
-                TargetBox?.SetEntity(en, EntityTypes.Event);
+                TargetBox?.SetEntity(en, EntityType.Event);
             }
             else
             {
-                TargetBox?.SetEntity(en, EntityTypes.GlobalEntity);
+                TargetBox?.SetEntity(en, EntityType.GlobalEntity);
             }
 
             TargetBox?.Show();
@@ -1483,13 +1456,27 @@ namespace Intersect.Client.Entities
 
         private void AutoTurnToTarget(Entity en)
         {
-            if (!Globals.Database.AutoTurnToTarget || !Options.Instance.PlayerOpts.EnableAutoTurnToTarget ||
-                Controls.KeyDown(Control.TurnAround))
+            if (en == this)
             {
                 return;
             }
 
-            byte directionToTarget = DirectionToTarget(en);
+            if (!Globals.Database.AutoTurnToTarget)
+            {
+                return;
+            }
+
+            if (!Options.Instance.PlayerOpts.EnableAutoTurnToTarget)
+            {
+                return;
+            }
+
+            if (Controls.KeyDown(Control.TurnAround))
+            {
+                return;
+            }
+
+            var directionToTarget = DirectionToTarget(en);
 
             if (IsMoving || Dir == MoveDir || Dir == directionToTarget)
             {
@@ -1502,39 +1489,43 @@ namespace Intersect.Client.Entities
                 return;
             }
 
-            MoveDir = -1;
+            if (Options.Instance.PlayerOpts.AutoTurnToTargetIgnoresEntitiesBehind &&
+                IsTargetAtOppositeDirection(Dir, directionToTarget))
+            {
+                return;
+            }
+
+            MoveDir = Direction.None;
             Dir = directionToTarget;
             PacketSender.SendDirection(Dir);
+            PickLastDirection(Dir);
         }
 
         public bool TryBlock()
         {
-            if (IsBlocking)
+            var shieldIndex = Options.ShieldIndex;
+            var myShieldIndex = MyEquipment[shieldIndex];
+
+            // Return false if character is attacking or if they don't have a shield equipped.
+            if (IsAttacking || shieldIndex < 0 || myShieldIndex < 0)
             {
                 return false;
             }
 
-            if (AttackTimer > Timing.Global.Milliseconds)
+            // Return false if the shield item descriptor could not be retrieved.
+            if (!ItemBase.TryGet(Inventory[myShieldIndex].ItemId, out _))
             {
                 return false;
             }
 
-            if (Options.ShieldIndex > -1 && Globals.Me.MyEquipment[Options.ShieldIndex] > -1)
-            {
-                var item = ItemBase.Get(Globals.Me.Inventory[Globals.Me.MyEquipment[Options.ShieldIndex]].ItemId);
-                if (item != null)
-                {
-                    PacketSender.SendBlock(true);
-                    return true;
-                }
-            }
-
-            return false;
+            IsBlocking = true;
+            PacketSender.SendBlock(IsBlocking);
+            return IsBlocking;
         }
 
         public bool TryAttack()
         {
-            if (AttackTimer > Timing.Global.Milliseconds || IsBlocking || (IsMoving && !Options.Instance.PlayerOpts.AllowCombatMovement))
+            if (IsAttacking || IsBlocking || (IsMoving && !Options.Instance.PlayerOpts.AllowCombatMovement))
             {
                 return false;
             }
@@ -1542,49 +1533,79 @@ namespace Intersect.Client.Entities
             int x = Globals.Me.X;
             int y = Globals.Me.Y;
             var map = Globals.Me.MapId;
+
             switch (Globals.Me.Dir)
             {
-                case 0:
+                case Direction.Up:
                     y--;
-
                     break;
-                case 1:
+
+                case Direction.Down:
                     y++;
-
                     break;
-                case 2:
+
+                case Direction.Left:
                     x--;
-
                     break;
-                case 3:
-                    x++;
 
+                case Direction.Right:
+                    x++;
+                    break;
+
+                case Direction.UpLeft:
+                    y--;
+                    x--;
+                    break;
+
+                case Direction.UpRight:
+                    y--;
+                    x++;
+                    break;
+
+                case Direction.DownRight:
+                    y++;
+                    x++;
+                    break;
+
+                case Direction.DownLeft:
+                    y++;
+                    x--;
                     break;
             }
 
             if (TryGetRealLocation(ref x, ref y, ref map))
             {
+                // Iterate through all entities
                 foreach (var en in Globals.Entities)
                 {
-                    if (en.Value == null)
+                    // Skip if the entity is null or is not within the player's map.
+                    if (en.Value?.MapId != map)
                     {
                         continue;
                     }
 
-                    if (en.Value != Globals.Me)
+                    // Skip if the entity is the current player.
+                    if (en.Value == Globals.Me)
                     {
-                        if (en.Value.MapId == map &&
-                            en.Value.X == x &&
-                            en.Value.Y == y &&
-                            en.Value.CanBeAttacked())
-                        {
-                            //ATTACKKKKK!!!
-                            PacketSender.SendAttack(en.Key);
-                            AttackTimer = Timing.Global.Milliseconds + CalculateAttackTime();
-
-                            return true;
-                        }
+                        continue;
                     }
+
+                    // Skip if the entity can't be attacked.
+                    if (!en.Value.CanBeAttacked)
+                    {
+                        continue;
+                    }
+
+                    if (en.Value.X != x || en.Value.Y != y)
+                    {
+                        continue;
+                    }
+
+                    // Attack the entity.
+                    PacketSender.SendAttack(en.Key);
+                    AttackTimer = Timing.Global.Milliseconds + CalculateAttackTime();
+
+                    return true;
                 }
             }
 
@@ -1673,7 +1694,7 @@ namespace Intersect.Client.Entities
             //Check for taunt status if so don't allow to change target
             for (var i = 0; i < Status.Count; i++)
             {
-                if (Status[i].Type == StatusTypes.Taunt)
+                if (Status[i].Type == SpellEffect.Taunt)
                 {
                     return false;
                 }
@@ -1779,7 +1800,7 @@ namespace Intersect.Client.Entities
             //Check for taunt status if so don't allow to change target
             for (var i = 0; i < Status.Count; i++)
             {
-                if (Status[i].Type == StatusTypes.Taunt && !force)
+                if (Status[i].Type == SpellEffect.Taunt && !force)
                 {
                     return false;
                 }
@@ -1934,9 +1955,9 @@ namespace Intersect.Client.Entities
         public virtual int CalculateAttackTime(int speed)
         {
             return (int)(Options.MaxAttackRate +
-                          (float)((Options.MinAttackRate - Options.MaxAttackRate) *
-                                   (((float)Options.MaxStatValue - speed) /
-                                    (float)Options.MaxStatValue)));
+                          (Options.MinAttackRate - Options.MaxAttackRate) *
+                          (((float)Options.MaxStatValue - speed) /
+                           Options.MaxStatValue));
         }
 
         //Movement Processing
@@ -1951,9 +1972,9 @@ namespace Intersect.Client.Entities
             //check if player is stunned or snared, if so don't let them move.
             for (var n = 0; n < Status.Count; n++)
             {
-                if (Status[n].Type == StatusTypes.Stun ||
-                    Status[n].Type == StatusTypes.Snare ||
-                    Status[n].Type == StatusTypes.Sleep)
+                if (Status[n].Type == SpellEffect.Stun ||
+                    Status[n].Type == SpellEffect.Snare ||
+                    Status[n].Type == SpellEffect.Sleep)
                 {
                     return;
                 }
@@ -1965,7 +1986,7 @@ namespace Intersect.Client.Entities
                 return;
             }
 
-            if (AttackTimer > Timing.Global.Milliseconds && !Options.Instance.PlayerOpts.AllowCombatMovement)
+            if (IsAttacking && !Options.Instance.PlayerOpts.AllowCombatMovement)
             {
                 return;
             }
@@ -1974,136 +1995,168 @@ namespace Intersect.Client.Entities
             var tmpY = (sbyte)Y;
             IEntity blockedBy = null;
 
-            if (MoveDir > -1 && Globals.EventDialogs.Count == 0)
+            if (MoveDir <= Direction.None || Globals.EventDialogs.Count != 0)
             {
-                //Try to move if able and not casting spells.
-                if (!IsMoving && MoveTimer < Timing.Global.Milliseconds && (Options.Combat.MovementCancelsCast || !IsCasting))
+                return;
+            }
+
+            //Try to move if able and not casting spells.
+            if (IsMoving || MoveTimer >= Timing.Global.Milliseconds ||
+                (!Options.Combat.MovementCancelsCast && IsCasting))
+            {
+                return;
+            }
+
+            if (Options.Combat.MovementCancelsCast)
+            {
+                CastTime = 0;
+            }
+
+            var deltaX = 0;
+            var deltaY = 0;
+
+            switch (MoveDir)
+            {
+                case Direction.Up:
+                    deltaX = 0;
+                    deltaY = -1;
+                    break;
+                
+                case Direction.Down:
+                    deltaX = 0;
+                    deltaY = 1;
+                    break;
+                
+                case Direction.Left:
+                    deltaX = -1;
+                    deltaY = 0;
+                    break;
+                
+                case Direction.Right:
+                    deltaX = 1;
+                    deltaY = 0;
+                    break;
+                
+                case Direction.UpLeft:
+                    deltaX = -1;
+                    deltaY = -1;
+                    break;
+                
+                case Direction.UpRight:
+                    deltaX = 1;
+                    deltaY = -1;
+                    break;
+                
+                case Direction.DownLeft:
+                    deltaX = -1;
+                    deltaY = 1;
+                    break;
+                
+                case Direction.DownRight:
+                    deltaX = 1;
+                    deltaY = 1;
+                    break;
+            }
+
+            if (deltaX != 0 || deltaY != 0)
+            {
+                if (IsTileBlocked(tmpX + deltaX, tmpY + deltaY, Z, MapId, ref blockedBy) == -1)
                 {
-                    if (Options.Combat.MovementCancelsCast)
+                    tmpX += (sbyte)deltaX;
+                    tmpY += (sbyte)deltaY;
+                    IsMoving = true;
+                    Dir = MoveDir;
+                    
+                    if (deltaX == 0)
                     {
-                        CastTime = 0;
-                    }
-
-                    switch (MoveDir)
-                    {
-                        case 0: // Up
-                            if (IsTileBlocked(X, Y - 1, Z, MapId, ref blockedBy) == -1)
-                            {
-                                tmpY--;
-                                IsMoving = true;
-                                Dir = 0;
-                                OffsetY = Options.TileHeight;
-                                OffsetX = 0;
-                            }
-
-                            break;
-                        case 1: // Down
-                            if (IsTileBlocked(X, Y + 1, Z, MapId, ref blockedBy) == -1)
-                            {
-                                tmpY++;
-                                IsMoving = true;
-                                Dir = 1;
-                                OffsetY = -Options.TileHeight;
-                                OffsetX = 0;
-                            }
-
-                            break;
-                        case 2: // Left
-                            if (IsTileBlocked(X - 1, Y, Z, MapId, ref blockedBy) == -1)
-                            {
-                                tmpX--;
-                                IsMoving = true;
-                                Dir = 2;
-                                OffsetY = 0;
-                                OffsetX = Options.TileWidth;
-                            }
-
-                            break;
-                        case 3: // Right
-                            if (IsTileBlocked(X + 1, Y, Z, MapId, ref blockedBy) == -1)
-                            {
-                                tmpX++;
-                                IsMoving = true;
-                                Dir = 3;
-                                OffsetY = 0;
-                                OffsetX = -Options.TileWidth;
-                            }
-
-                            break;
-                    }
-
-                    if (blockedBy != mLastBumpedEvent)
-                    {
-                        mLastBumpedEvent = null;
-                    }
-
-                    if (IsMoving)
-                    {
-                        if (tmpX < 0 || tmpY < 0 || tmpX > Options.MapWidth - 1 || tmpY > Options.MapHeight - 1)
-                        {
-                            var gridX = Maps.MapInstance.Get(Globals.Me.MapId).GridX;
-                            var gridY = Maps.MapInstance.Get(Globals.Me.MapId).GridY;
-                            if (tmpX < 0)
-                            {
-                                gridX--;
-                                X = (byte)(Options.MapWidth - 1);
-                            }
-                            else if (tmpX >= Options.MapWidth)
-                            {
-                                X = 0;
-                                gridX++;
-                            }
-                            else
-                            {
-                                X = (byte)tmpX;
-                            }
-
-                            if (tmpY < 0)
-                            {
-                                gridY--;
-                                Y = (byte)(Options.MapHeight - 1);
-                            }
-                            else if (tmpY >= Options.MapHeight)
-                            {
-                                Y = 0;
-                                gridY++;
-                            }
-                            else
-                            {
-                                Y = (byte)tmpY;
-                            }
-
-                            if (MapId != Globals.MapGrid[gridX, gridY])
-                            {
-                                MapId = Globals.MapGrid[gridX, gridY];
-                                FetchNewMaps();
-                            }
-
-                        }
-                        else
-                        {
-                            X = (byte)tmpX;
-                            Y = (byte)tmpY;
-                        }
-
-                        TryToChangeDimension();
-                        PacketSender.SendMove();
-                        MoveTimer = (Timing.Global.Milliseconds) + (long)GetMovementTime();
+                        OffsetX = 0;
                     }
                     else
                     {
-                        if (MoveDir != Dir)
-                        {
-                            Dir = (byte)MoveDir;
-                            PacketSender.SendDirection(Dir);
-                        }
-
-                        if (blockedBy != null && mLastBumpedEvent != blockedBy && blockedBy is Event)
-                        {
-                            PacketSender.SendBumpEvent(blockedBy.MapId, blockedBy.Id);
-                            mLastBumpedEvent = blockedBy as Entity;
-                        }
+                        OffsetX = deltaX > 0 ? -Options.TileWidth : Options.TileWidth;
                     }
+
+                    if (deltaY == 0)
+                    {
+                        OffsetY = 0;
+                    }
+                    else
+                    {
+                        OffsetY = deltaY > 0 ? -Options.TileHeight : Options.TileHeight;
+                    }
+                }
+            }
+
+            if (blockedBy != mLastBumpedEvent)
+            {
+                mLastBumpedEvent = null;
+            }
+
+            if (IsMoving)
+            {
+                if (tmpX < 0 || tmpY < 0 || tmpX > Options.MapWidth - 1 || tmpY > Options.MapHeight - 1)
+                {
+                    var gridX = Maps.MapInstance.Get(Globals.Me.MapId).GridX;
+                    var gridY = Maps.MapInstance.Get(Globals.Me.MapId).GridY;
+                    if (tmpX < 0)
+                    {
+                        gridX--;
+                        X = (byte)(Options.MapWidth - 1);
+                    }
+                    else if (tmpX >= Options.MapWidth)
+                    {
+                        X = 0;
+                        gridX++;
+                    }
+                    else
+                    {
+                        X = (byte)tmpX;
+                    }
+
+                    if (tmpY < 0)
+                    {
+                        gridY--;
+                        Y = (byte)(Options.MapHeight - 1);
+                    }
+                    else if (tmpY >= Options.MapHeight)
+                    {
+                        Y = 0;
+                        gridY++;
+                    }
+                    else
+                    {
+                        Y = (byte)tmpY;
+                    }
+
+                    if (MapId != Globals.MapGrid[gridX, gridY])
+                    {
+                        MapId = Globals.MapGrid[gridX, gridY];
+                        FetchNewMaps();
+                    }
+                }
+                else
+                {
+                    X = (byte)tmpX;
+                    Y = (byte)tmpY;
+                }
+
+                TryToChangeDimension();
+                PacketSender.SendMove();
+                MoveTimer = (Timing.Global.Milliseconds) + (long)GetMovementTime();
+            }
+            else
+            {
+                if (MoveDir != Dir)
+                {
+                    Dir = MoveDir;
+                    PacketSender.SendDirection(Dir);
+                    PickLastDirection(Dir);
+                }
+
+                if (blockedBy != null && mLastBumpedEvent != blockedBy && blockedBy is Event)
+                {
+                    PacketSender.SendBumpEvent(blockedBy.MapId, blockedBy.Id);
+                    mLastBumpedEvent = blockedBy as Entity;
                 }
             }
         }
@@ -2136,18 +2189,18 @@ namespace Intersect.Client.Entities
             }
         }
 
-        public override void DrawEquipment(string filename, Color renderColor, FloatRect entityRect)
+        public override void DrawEquipment(string filename, Color renderColor)
         {
             //check if player is stunned or snared, if so don't let them move.
             for (var n = 0; n < Status.Count; n++)
             {
-                if (Status[n].Type == StatusTypes.Transform)
+                if (Status[n].Type == SpellEffect.Transform)
                 {
                     return;
                 }
             }
 
-            base.DrawEquipment(filename, renderColor, entityRect);
+            base.DrawEquipment(filename, renderColor);
         }
 
         //Override of the original function, used for rendering the color of a player based on rank
@@ -2155,23 +2208,26 @@ namespace Intersect.Client.Entities
         {
             if (textColor == null)
             {
-                if (Aggression == 1) //Mod
+                switch (AccessLevel)
                 {
-                    textColor = CustomColors.Names.Players["Moderator"].Name;
-                    borderColor = CustomColors.Names.Players["Moderator"].Outline;
-                    backgroundColor = CustomColors.Names.Players["Moderator"].Background;
-                }
-                else if (Aggression == 2) //Admin
-                {
-                    textColor = CustomColors.Names.Players["Admin"].Name;
-                    borderColor = CustomColors.Names.Players["Admin"].Outline;
-                    backgroundColor = CustomColors.Names.Players["Admin"].Background;
-                }
-                else //No Power
-                {
-                    textColor = CustomColors.Names.Players["Normal"].Name;
-                    borderColor = CustomColors.Names.Players["Normal"].Outline;
-                    backgroundColor = CustomColors.Names.Players["Normal"].Background;
+                    case Access.Moderator:
+                        textColor = CustomColors.Names.Players["Moderator"].Name;
+                        borderColor = CustomColors.Names.Players["Moderator"].Outline;
+                        backgroundColor = CustomColors.Names.Players["Moderator"].Background;
+                        break;
+
+                    case Access.Admin:
+                        textColor = CustomColors.Names.Players["Admin"].Name;
+                        borderColor = CustomColors.Names.Players["Admin"].Outline;
+                        backgroundColor = CustomColors.Names.Players["Admin"].Background;
+                        break;
+
+                    case Access.None:
+                    default:
+                        textColor = CustomColors.Names.Players["Normal"].Name;
+                        borderColor = CustomColors.Names.Players["Normal"].Outline;
+                        backgroundColor = CustomColors.Names.Players["Normal"].Background;
+                        break;
                 }
             }
 
@@ -2217,7 +2273,7 @@ namespace Intersect.Client.Entities
             for (var n = 0; n < Status.Count; n++)
             {
                 //If unit is stealthed, don't render unless the entity is the player.
-                if (Status[n].Type == StatusTypes.Stealth)
+                if (Status[n].Type == SpellEffect.Stealth)
                 {
                     if (this != Globals.Me && !(this is Player player && Globals.Me.IsInMyParty(player)))
                     {
@@ -2246,127 +2302,48 @@ namespace Intersect.Client.Entities
             }
 
             Graphics.Renderer.DrawString(
-                Guild, Graphics.EntityNameFont, (int)(x - (int)Math.Ceiling(textSize.X / 2f)), (int)y, 1,
+                Guild, Graphics.EntityNameFont, x - (int)Math.Ceiling(textSize.X / 2f), (int)y, 1,
                 Color.FromArgb(textColor.ToArgb()), true, null, Color.FromArgb(borderColor.ToArgb())
             );
         }
 
-        // Draw Entities Overhead Information when hovering the cursor by them
-        // (when they are hidden by the game settings preferences).
-        public void DrawOverheadInfoOnHover()
+        protected override bool ShouldDrawHpBar
         {
-            if (Interface.Interface.MouseHitGui())
+            get
             {
-                return;
-            }
-
-            var mousePos = Graphics.ConvertToWorldPoint(Globals.InputManager.GetMousePosition());
-            foreach (MapInstance map in Maps.MapInstance.Lookup.Values)
-            {
-                if (mousePos.X >= map.GetX() && mousePos.X <= map.GetX() + Options.MapWidth * Options.TileWidth)
+                if (ShouldNotDrawHpBar)
                 {
-                    if (mousePos.Y >= map.GetY() && mousePos.Y <= map.GetY() + Options.MapHeight * Options.TileHeight)
-                    {
-                        var mapId = map.Id;
-                        foreach (var en in Globals.Entities)
-                        {
-                            if (en.Value == null)
-                            {
-                                continue;
-                            }
-
-                            var isPlayer = en.Value is Player;
-                            var isNpc = !isPlayer;
-                            var player = en.Value as Player;
-
-                            if (en.Value.MapId == mapId &&
-                                !en.Value.HideName &&
-                                (!en.Value.IsStealthed || isPlayer && Globals.Me.IsInMyParty(player)) &&
-                                en.Value.WorldPos.Contains(mousePos.X, mousePos.Y))
-                            {
-                                // We don't want to deal with these entities when hovering the cursor by them.
-                                var ignoreEntities = !(en.Value is Projectile || en.Value is Resource || en.Value is Event);
-
-                                if (ignoreEntities)
-                                {
-                                    // Who's who.
-                                    var isMe = isPlayer && player.Id == Globals.Me.Id;
-                                    var isOtherPlayer = isPlayer && !isMe;
-                                    var isFriend = isOtherPlayer && Globals.Me.IsFriend(player);
-                                    var isGuildMate = isOtherPlayer && Globals.Me.IsGuildMate(player);
-                                    var isPartyMate = isOtherPlayer && Globals.Me.IsInMyParty(player);
-
-                                    // If MyOverheadInfo is toggled off, draw the local Players
-                                    // overhead information only when hovered by the cursor.
-                                    if (!Globals.Database.MyOverheadInfo && isMe)
-                                    {
-                                        en.Value.DrawName(null);
-                                    }
-
-                                    // If NpcOverheadInfo is toggled off, draw NPCs
-                                    // overhead information only when hovered by the cursor.
-                                    if (!Globals.Database.NpcOverheadInfo && isNpc)
-                                    {
-                                        en.Value.DrawName(null);
-                                    }
-
-                                    // If PlayerOverheadInfo is toggled off, draw Players
-                                    // overhead information only when hovered by the cursor.
-                                    if (!Globals.Database.PlayerOverheadInfo && isOtherPlayer &&
-                                        !isFriend && !isGuildMate && !isPartyMate)
-                                    {
-                                        en.Value.DrawName(null);
-                                    }
-
-                                    // If PartyMemberOverheadInfo is toggled off, draw Party Members
-                                    // overhead information only when hovered by the cursor.
-                                    if (!Globals.Database.PartyMemberOverheadInfo && isPartyMate)
-                                    {
-                                        en.Value.DrawName(null);
-                                    }
-
-                                    // If FriendOverheadInfo & GuildMemberOverheadInfo are off,
-                                    // let's prevent double draw / overlapping.
-                                    if (!Globals.Database.FriendOverheadInfo && isFriend &&
-                                        !Globals.Database.GuildMemberOverheadInfo && isGuildMate && !isPartyMate)
-                                    {
-                                        en.Value.DrawName(null);
-
-                                        continue;
-                                    }
-
-                                    // If FriendOverheadInfo is toggled off, draw Friends
-                                    // overhead information only when hovered by the cursor.
-                                    if (!Globals.Database.FriendOverheadInfo && isFriend && !isPartyMate)
-                                    {
-                                        // Skip if Friend is GuildMate.
-                                        if (Globals.Database.GuildMemberOverheadInfo && isGuildMate)
-                                        {
-                                            continue;
-                                        }
-
-                                        en.Value.DrawName(null);
-                                    }
-
-                                    // If GuildMemberOverheadInfo is toggled off, draw Guild Members
-                                    // overhead information only when hovered by the cursor.
-                                    if (!Globals.Database.GuildMemberOverheadInfo && isGuildMate && !isPartyMate)
-                                    {
-                                        // Skip if GuildMate is Friend.
-                                        if (Globals.Database.FriendOverheadInfo && isFriend)
-                                        {
-                                            continue;
-                                        }
-
-                                        en.Value.DrawName(null);
-                                    }
-                                }
-                            }
-                        }
-
-                        break;
-                    }
+                    return false;
                 }
+
+                if (IsHovered)
+                {
+                    return true;
+                }
+
+                var me = Globals.Me;
+
+                if (Globals.Database.MyOverheadHpBar && Id == me.Id)
+                {
+                    return true;
+                }
+
+                if (Globals.Database.PlayerOverheadHpBar && Id != me.Id)
+                {
+                    return true;
+                }
+
+                if (Globals.Database.PartyMemberOverheadHpBar && me.IsInMyParty(this))
+                {
+                    return true;
+                }
+
+                if (Globals.Database.FriendOverheadHpBar && me.IsFriend(this))
+                {
+                    return true;
+                }
+
+                return Globals.Database.GuildMemberOverheadHpBar && me.IsGuildMate(this);
             }
         }
 
@@ -2399,7 +2376,7 @@ namespace Intersect.Client.Entities
                     continue;
                 }
 
-                en.Value.DrawTarget((int)TargetTypes.Selected);
+                en.Value.DrawTarget((int)Enums.TargetType.Selected);
                 AutoTurnToTarget(en.Value);
             }
 
@@ -2437,7 +2414,7 @@ namespace Intersect.Client.Entities
                         continue;
                     }
 
-                    en.Value.DrawTarget((int)TargetTypes.Selected);
+                    en.Value.DrawTarget((int)Enums.TargetType.Selected);
                     AutoTurnToTarget(en.Value);
                 }
             }
@@ -2471,7 +2448,7 @@ namespace Intersect.Client.Entities
                                     {
                                         if (TargetType != 0 || TargetIndex != en.Value.Id)
                                         {
-                                            en.Value.DrawTarget((int)TargetTypes.Hover);
+                                            en.Value.DrawTarget((int)Enums.TargetType.Hover);
                                         }
                                     }
                                 }
@@ -2495,7 +2472,7 @@ namespace Intersect.Client.Entities
                                     {
                                         if (TargetType != 1 || TargetIndex != en.Value.Id)
                                         {
-                                            en.Value.DrawTarget((int)TargetTypes.Hover);
+                                            en.Value.DrawTarget((int)Enums.TargetType.Hover);
                                         }
                                     }
                                 }
@@ -2518,9 +2495,9 @@ namespace Intersect.Client.Entities
         private void TurnAround()
         {
             // If players hold the 'TurnAround' Control Key and tap to any direction, they will turn on their own axis.
-            for (var direction = 0; direction < Options.Instance.Sprites.Directions; direction++)
+            for (var direction = 0; direction < Options.Instance.MapOpts.MovementDirections; direction++)
             {
-                if (!Controls.KeyDown(Control.TurnAround) || direction != Globals.Me.MoveDir)
+                if (!Controls.KeyDown(Control.TurnAround) || direction != (int)Globals.Me.MoveDir)
                 {
                     continue;
                 }
@@ -2528,16 +2505,76 @@ namespace Intersect.Client.Entities
                 // Turn around and hold the player in place if the requested direction is different from the current one.
                 if (!Globals.Me.IsMoving && Dir != Globals.Me.MoveDir)
                 {
-                    Dir = (byte)Globals.Me.MoveDir;
+                    Dir = Globals.Me.MoveDir;
                     PacketSender.SendDirection(Dir);
-                    Globals.Me.MoveDir = -1;
+                    Globals.Me.MoveDir = Direction.None;
+                    PickLastDirection(Dir);
                 }
 
                 // Hold the player in place if the requested direction is the same as the current one.
                 if (!Globals.Me.IsMoving && Dir == Globals.Me.MoveDir)
                 {
-                    Globals.Me.MoveDir = -1;
+                    Globals.Me.MoveDir = Direction.None;
                 }
+            }
+        }
+        
+        // Checks if the target is at the opposite direction of the current player's direction.
+        // The comparison also takes into account whether diagonal movement is enabled or not.
+        private static bool IsTargetAtOppositeDirection(Direction currentDir, Direction targetDir)
+        {
+            if (Options.Instance.MapOpts.EnableDiagonalMovement)
+            {
+                // If diagonal movement is disabled, check opposite directions on 4 directions.
+                switch (currentDir)
+                {
+                    case Direction.Up:
+                        return targetDir == Direction.Down || targetDir == Direction.DownLeft ||
+                               targetDir == Direction.DownRight;
+
+                    case Direction.Down:
+                        return targetDir == Direction.Up || targetDir == Direction.UpLeft ||
+                               targetDir == Direction.UpRight;
+
+                    case Direction.Left:
+                        return targetDir == Direction.Right || targetDir == Direction.UpRight ||
+                               targetDir == Direction.DownRight;
+
+                    case Direction.Right:
+                        return targetDir == Direction.Left || targetDir == Direction.UpLeft ||
+                               targetDir == Direction.DownLeft;
+
+                    default:
+                        if (!Options.Instance.MapOpts.EnableDiagonalMovement)
+                        {
+                            return false;
+                        }
+
+                        break;
+                }
+            }
+
+            // If diagonal movement is enabled, check opposite directions on 8 directions.
+            switch (currentDir)
+            {
+                case Direction.UpLeft:
+                    return targetDir == Direction.DownRight || targetDir == Direction.Right ||
+                           targetDir == Direction.Down;
+
+                case Direction.UpRight:
+                    return targetDir == Direction.DownLeft || targetDir == Direction.Left ||
+                           targetDir == Direction.Down;
+
+                case Direction.DownLeft:
+                    return targetDir == Direction.UpRight || targetDir == Direction.Right || 
+                           targetDir == Direction.Up;
+
+                case Direction.DownRight:
+                    return targetDir == Direction.UpLeft || targetDir == Direction.Left || 
+                           targetDir == Direction.Up;
+
+                default:
+                    return false;
             }
         }
     }

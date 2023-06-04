@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Intersect.Enums;
 using Intersect.GameObjects;
 using Intersect.Logging;
@@ -14,10 +13,10 @@ using Intersect.Server.Database.PlayerData.Players;
 using Intersect.Server.Entities.Combat;
 using Intersect.Server.Entities.Events;
 using Intersect.Server.Entities.Pathfinding;
-using Intersect.Server.General;
 using Intersect.Server.Maps;
 using Intersect.Server.Networking;
 using Intersect.Utilities;
+using Stat = Intersect.Enums.Stat;
 
 namespace Intersect.Server.Entities
 {
@@ -113,10 +112,10 @@ namespace Intersect.Server.Entities
             Base = myBase;
             Despawnable = despawnable;
 
-            for (var i = 0; i < (int) Stats.StatCount; i++)
+            for (var i = 0; i < (int) Enums.Stat.StatCount; i++)
             {
                 BaseStats[i] = myBase.Stats[i];
-                Stat[i] = new Stat((Stats) i, this);
+                Stat[i] = new Combat.Stat((Stat) i, this);
             }
 
             var spellSlot = 0;
@@ -139,7 +138,7 @@ namespace Intersect.Server.Entities
                 itemSlot++;
             }
 
-            for (var i = 0; i < (int) Vitals.VitalCount; i++)
+            for (var i = 0; i < (int) Vital.VitalCount; i++)
             {
                 SetMaxVital(i, myBase.MaxVital[i]);
                 SetVital(i, myBase.MaxVital[i]);
@@ -155,9 +154,9 @@ namespace Intersect.Server.Entities
 
         private bool IsUnableToCastSpells => CachedStatuses.Any(PredicateUnableToCastSpells);
 
-        public override EntityTypes GetEntityType()
+        public override EntityType GetEntityType()
         {
-            return EntityTypes.GlobalEntity;
+            return EntityType.GlobalEntity;
         }
 
         public override void Die(bool generateLoot = true, Entity killer = null)
@@ -187,7 +186,7 @@ namespace Intersect.Server.Entities
 
         public bool TargetHasStealth(Entity target)
         {
-            return target == null || target.CachedStatuses.Any(s => s.Type == StatusTypes.Stealth);
+            return target == null || target.CachedStatuses.Any(s => s.Type == SpellEffect.Stealth);
         }
 
         //Targeting
@@ -221,7 +220,7 @@ namespace Intersect.Server.Entities
                 {
                     foreach (var status in CachedStatuses)
                     {
-                        if (status.Type == StatusTypes.Taunt && en != status.Attacker && GetDistanceTo(status.Attacker) != 9999)
+                        if (status.Type == SpellEffect.Taunt && en != status.Attacker && GetDistanceTo(status.Attacker) != 9999)
                         {
                             return;
                         }
@@ -326,7 +325,7 @@ namespace Intersect.Server.Entities
             //Check if the attacker is stunned or blinded.
             foreach (var status in CachedStatuses)
             {
-                if (status.Type == StatusTypes.Stun || status.Type == StatusTypes.Sleep)
+                if (status.Type == SpellEffect.Stun || status.Type == SpellEffect.Sleep)
                 {
                     return false;
                 }
@@ -389,28 +388,30 @@ namespace Intersect.Server.Entities
                 return;
             }
 
-            var deadAnimations = new List<KeyValuePair<Guid, sbyte>>();
-            var aliveAnimations = new List<KeyValuePair<Guid, sbyte>>();
+            var deadAnimations = new List<KeyValuePair<Guid, Direction>>();
+            var aliveAnimations = new List<KeyValuePair<Guid, Direction>>();
 
             //We were forcing at LEAST 1hp base damage.. but then you can't have guards that won't hurt the player.
             //https://www.ascensiongamedev.com/community/bug_tracker/intersect/npc-set-at-0-attack-damage-still-damages-player-by-1-initially-r915/
-            if (AttackTimer < Timing.Global.Milliseconds)
+            if (IsAttacking)
             {
-                if (Base.AttackAnimation != null)
-                {
-                    PacketSender.SendAnimationToProximity(
-                        Base.AttackAnimationId, -1, Guid.Empty, target.MapId, (byte) target.X, (byte) target.Y,
-                        (sbyte) Dir, target.MapInstanceId
-                    );
-                }
-
-                base.TryAttack(
-                    target, Base.Damage, (DamageType) Base.DamageType, (Stats) Base.ScalingStat, Base.Scaling,
-                    Base.CritChance, Base.CritMultiplier, deadAnimations, aliveAnimations
-                );
-
-                PacketSender.SendEntityAttack(this, CalculateAttackTime());
+                return;
             }
+
+            if (Base.AttackAnimation != null)
+            {
+                PacketSender.SendAnimationToProximity(
+                    Base.AttackAnimationId, -1, Guid.Empty, target.MapId, (byte)target.X, (byte)target.Y,
+                    Dir, target.MapInstanceId
+                );
+            }
+
+            base.TryAttack(
+                target, Base.Damage, (DamageType)Base.DamageType, (Stat)Base.ScalingStat, Base.Scaling,
+                Base.CritChance, Base.CritMultiplier, deadAnimations, aliveAnimations
+            );
+
+            PacketSender.SendEntityAttack(this, CalculateAttackTime());
         }
 
         public bool CanNpcCombat(Entity enemy, bool friendly = false)
@@ -462,21 +463,21 @@ namespace Intersect.Server.Entities
         {
             switch (status?.Type)
             {
-                case StatusTypes.Sleep:
-                case StatusTypes.Stun:
+                case SpellEffect.Sleep:
+                case SpellEffect.Stun:
                     return true;
 
-                case StatusTypes.Silence:
-                case StatusTypes.None:
-                case StatusTypes.Snare:
-                case StatusTypes.Blind:
-                case StatusTypes.Stealth:
-                case StatusTypes.Transform:
-                case StatusTypes.Cleanse:
-                case StatusTypes.Invulnerable:
-                case StatusTypes.Shield:
-                case StatusTypes.OnHit:
-                case StatusTypes.Taunt:
+                case SpellEffect.Silence:
+                case SpellEffect.None:
+                case SpellEffect.Snare:
+                case SpellEffect.Blind:
+                case SpellEffect.Stealth:
+                case SpellEffect.Transform:
+                case SpellEffect.Cleanse:
+                case SpellEffect.Invulnerable:
+                case SpellEffect.Shield:
+                case SpellEffect.OnHit:
+                case SpellEffect.Taunt:
                 case null:
                     return false;
 
@@ -489,21 +490,21 @@ namespace Intersect.Server.Entities
         {
             switch (status?.Type)
             {
-                case StatusTypes.Silence:
-                case StatusTypes.Sleep:
-                case StatusTypes.Stun:
+                case SpellEffect.Silence:
+                case SpellEffect.Sleep:
+                case SpellEffect.Stun:
                     return true;
 
-                case StatusTypes.None:
-                case StatusTypes.Snare:
-                case StatusTypes.Blind:
-                case StatusTypes.Stealth:
-                case StatusTypes.Transform:
-                case StatusTypes.Cleanse:
-                case StatusTypes.Invulnerable:
-                case StatusTypes.Shield:
-                case StatusTypes.OnHit:
-                case StatusTypes.Taunt:
+                case SpellEffect.None:
+                case SpellEffect.Snare:
+                case SpellEffect.Blind:
+                case SpellEffect.Stealth:
+                case SpellEffect.Transform:
+                case SpellEffect.Cleanse:
+                case SpellEffect.Invulnerable:
+                case SpellEffect.Shield:
+                case SpellEffect.OnHit:
+                case SpellEffect.Taunt:
                 case null:
                     return false;
 
@@ -512,7 +513,7 @@ namespace Intersect.Server.Entities
             }
         }
 
-        public override int CanMove(int moveDir)
+        public override int CanMove(Direction moveDir)
         {
             var canMove = base.CanMove(moveDir);
 
@@ -528,38 +529,38 @@ namespace Intersect.Server.Entities
                 var tile = new TileHelper(MapId, X, Y);
                 switch (moveDir)
                 {
-                    case 0: //Up
+                    case Direction.Up:
                         yOffset--;
 
                         break;
-                    case 1: //Down
+                    case Direction.Down:
                         yOffset++;
 
                         break;
-                    case 2: //Left
+                    case Direction.Left:
                         xOffset--;
 
                         break;
-                    case 3: //Right
+                    case Direction.Right:
                         xOffset++;
 
                         break;
-                    case 4: //NW
+                    case Direction.UpLeft:
                         yOffset--;
                         xOffset--;
 
                         break;
-                    case 5: //NE
+                    case Direction.UpRight:
                         yOffset--;
                         xOffset++;
 
                         break;
-                    case 6: //SW
+                    case Direction.DownLeft:
                         yOffset++;
                         xOffset--;
 
                         break;
-                    case 7: //SE
+                    case Direction.DownRight:
                         yOffset++;
                         xOffset++;
 
@@ -637,11 +638,11 @@ namespace Intersect.Server.Entities
             }
 
             var range = spellBase.Combat?.CastRange ?? 0;
-            var targetType = spellBase.Combat?.TargetType ?? SpellTargetTypes.Single;
+            var targetType = spellBase.Combat?.TargetType ?? SpellTargetType.Single;
             var projectileBase = spellBase.Combat?.Projectile;
 
-            if (spellBase.SpellType == SpellTypes.CombatSpell &&
-                targetType == SpellTargetTypes.Projectile &&
+            if (spellBase.SpellType == SpellType.CombatSpell &&
+                targetType == SpellTargetType.Projectile &&
                 projectileBase != null &&
                 InRangeOf(target, projectileBase.Range))
             {
@@ -664,7 +665,7 @@ namespace Intersect.Server.Entities
 
             CastTime = Timing.Global.Milliseconds + spellBase.CastDuration;
 
-            if ((spellBase.Combat?.Friendly ?? false) && spellBase.SpellType != SpellTypes.WarpTo)
+            if ((spellBase.Combat?.Friendly ?? false) && spellBase.SpellType != SpellType.WarpTo)
             {
                 CastTarget = this;
             }
@@ -705,7 +706,7 @@ namespace Intersect.Server.Entities
 
             if (spellBase.CastAnimationId != Guid.Empty)
             {
-                PacketSender.SendAnimationToProximity(spellBase.CastAnimationId, 1, Id, MapId, 0, 0, (sbyte) Dir, MapInstanceId);
+                PacketSender.SendAnimationToProximity(spellBase.CastAnimationId, 1, Id, MapId, 0, 0, Dir, MapInstanceId);
 
                 //Target Type 1 will be global entity
             }
@@ -717,8 +718,8 @@ namespace Intersect.Server.Entities
         {
             if (Base.FleeHealthPercentage > 0)
             {
-                var fleeHpCutoff = GetMaxVital(Vitals.Health) * ((float)Base.FleeHealthPercentage / 100f);
-                if (GetVital(Vitals.Health) < fleeHpCutoff)
+                var fleeHpCutoff = GetMaxVital(Vital.Health) * (Base.FleeHealthPercentage / 100f);
+                if (GetVital(Vital.Health) < fleeHpCutoff)
                 {
                     return true;
                 }
@@ -742,7 +743,7 @@ namespace Intersect.Server.Entities
 
                     foreach (var status in CachedStatuses)
                     {
-                        if (status.Type == StatusTypes.Stun || status.Type == StatusTypes.Sleep)
+                        if (status.Type == SpellEffect.Stun || status.Type == SpellEffect.Sleep)
                         {
                             return;
                         }
@@ -819,7 +820,7 @@ namespace Intersect.Server.Entities
                                 targetZ = tempTarget.Z;
                                 foreach (var targetStatus in tempTarget.CachedStatuses)
                                 {
-                                    if (targetStatus.Type == StatusTypes.Stealth)
+                                    if (targetStatus.Type == SpellEffect.Stealth)
                                     {
                                         targetMap = Guid.Empty;
                                         targetX = 0;
@@ -897,26 +898,42 @@ namespace Intersect.Server.Entities
                                     case PathfinderResult.Success:
 
                                         var dir = mPathFinder.GetMove();
-                                        if (dir > -1)
+                                        if (dir > Direction.None)
                                         {
                                             if (fleeing)
                                             {
                                                 switch (dir)
                                                 {
-                                                    case 0:
-                                                        dir = 1;
+                                                    case Direction.Up:
+                                                        dir = Direction.Down;
 
                                                         break;
-                                                    case 1:
-                                                        dir = 0;
+                                                    case Direction.Down:
+                                                        dir = Direction.Up;
 
                                                         break;
-                                                    case 2:
-                                                        dir = 3;
+                                                    case Direction.Left:
+                                                        dir = Direction.Right;
 
                                                         break;
-                                                    case 3:
-                                                        dir = 2;
+                                                    case Direction.Right:
+                                                        dir = Direction.Left;
+
+                                                        break;
+                                                    case Direction.UpLeft:
+                                                        dir = Direction.UpRight;
+
+                                                        break;
+                                                    case Direction.UpRight:
+                                                        dir = Direction.UpLeft;
+
+                                                        break;
+                                                    case Direction.DownRight:
+                                                        dir = Direction.DownLeft;
+
+                                                        break;
+                                                    case Direction.DownLeft:
+                                                        dir = Direction.DownRight;
 
                                                         break;
                                                 }
@@ -927,15 +944,15 @@ namespace Intersect.Server.Entities
                                                 //check if NPC is snared or stunned
                                                 foreach (var status in CachedStatuses)
                                                 {
-                                                    if (status.Type == StatusTypes.Stun ||
-                                                        status.Type == StatusTypes.Snare ||
-                                                        status.Type == StatusTypes.Sleep)
+                                                    if (status.Type == SpellEffect.Stun ||
+                                                        status.Type == SpellEffect.Snare ||
+                                                        status.Type == SpellEffect.Sleep)
                                                     {
                                                         return;
                                                     }
                                                 }
 
-                                                Move((byte)dir, null);
+                                                Move(dir, null);
                                             }
                                             else
                                             {
@@ -996,20 +1013,36 @@ namespace Intersect.Server.Entities
                                     var dir = DirToEnemy(tempTarget);
                                     switch (dir)
                                     {
-                                        case 0:
-                                            dir = 1;
+                                        case Direction.Up:
+                                            dir = Direction.Down;
 
                                             break;
-                                        case 1:
-                                            dir = 0;
+                                        case Direction.Down:
+                                            dir = Direction.Up;
 
                                             break;
-                                        case 2:
-                                            dir = 3;
+                                        case Direction.Left:
+                                            dir = Direction.Right;
 
                                             break;
-                                        case 3:
-                                            dir = 2;
+                                        case Direction.Right:
+                                            dir = Direction.Left;
+
+                                            break;
+                                        case Direction.UpLeft:
+                                            dir = Direction.UpRight;
+
+                                            break;
+                                        case Direction.UpRight:
+                                            dir = Direction.UpLeft;
+                                            break;
+
+                                        case Direction.DownRight:
+                                            dir = Direction.DownLeft;
+
+                                            break;
+                                        case Direction.DownLeft:
+                                            dir = Direction.DownRight;
 
                                             break;
                                     }
@@ -1019,9 +1052,9 @@ namespace Intersect.Server.Entities
                                         //check if NPC is snared or stunned
                                         foreach (var status in CachedStatuses)
                                         {
-                                            if (status.Type == StatusTypes.Stun ||
-                                                status.Type == StatusTypes.Snare ||
-                                                status.Type == StatusTypes.Sleep)
+                                            if (status.Type == SpellEffect.Stun ||
+                                                status.Type == SpellEffect.Snare ||
+                                                status.Type == SpellEffect.Sleep)
                                             {
                                                 return;
                                             }
@@ -1036,7 +1069,7 @@ namespace Intersect.Server.Entities
                                 {
                                     if (tempTarget != null)
                                     {
-                                        if (Dir != DirToEnemy(tempTarget) && DirToEnemy(tempTarget) != -1)
+                                        if (Dir != DirToEnemy(tempTarget) && DirToEnemy(tempTarget) != Direction.None)
                                         {
                                             ChangeDir(DirToEnemy(tempTarget));
                                         }
@@ -1081,7 +1114,7 @@ namespace Intersect.Server.Entities
                         }
                         else if (Base.Movement == (int)NpcMovement.TurnRandomly)
                         {
-                            ChangeDir((byte)Randomization.Next(0, Options.Instance.Sprites.Directions));
+                            ChangeDir(Randomization.NextDirection());
                             LastRandomMove = Timing.Global.Milliseconds + Randomization.Next(1000, 3000);
 
                             return;
@@ -1090,21 +1123,21 @@ namespace Intersect.Server.Entities
                         var i = Randomization.Next(0, 1);
                         if (i == 0)
                         {
-                            i = Randomization.Next(0, Options.Instance.Sprites.Directions);
-                            if (CanMove(i) == -1)
+                            var direction = Randomization.NextDirection();
+                            if (CanMove(direction) == -1)
                             {
                                 //check if NPC is snared or stunned
                                 foreach (var status in CachedStatuses)
                                 {
-                                    if (status.Type == StatusTypes.Stun ||
-                                        status.Type == StatusTypes.Snare ||
-                                        status.Type == StatusTypes.Sleep)
+                                    if (status.Type == SpellEffect.Stun ||
+                                        status.Type == SpellEffect.Snare ||
+                                        status.Type == SpellEffect.Sleep)
                                     {
                                         return;
                                     }
                                 }
 
-                                Move((byte)i, null);
+                                Move(direction, null);
                             }
                         }
 
@@ -1112,7 +1145,7 @@ namespace Intersect.Server.Entities
 
                         if (fleeing)
                         {
-                            LastRandomMove = Timing.Global.Milliseconds + (long) GetMovementTime();
+                            LastRandomMove = Timing.Global.Milliseconds + (long)GetMovementTime();
                         }
                     }
 
@@ -1207,9 +1240,9 @@ namespace Intersect.Server.Entities
                 CachedStatuses = Statuses.Values.ToArray();
                 DoT.Clear();
                 CachedDots = DoT.Values.ToArray();
-                for (var v = 0; v < (int)Vitals.VitalCount; v++)
+                for (var v = 0; v < (int)Vital.VitalCount; v++)
                 {
-                    RestoreVital((Vitals)v);
+                    RestoreVital((Vital)v);
                 }
             }
         }
@@ -1483,9 +1516,9 @@ namespace Intersect.Server.Entities
                 return;
             }
 
-            foreach (Vitals vital in Enum.GetValues(typeof(Vitals)))
+            foreach (Vital vital in Enum.GetValues(typeof(Vital)))
             {
-                if (vital >= Vitals.VitalCount)
+                if (vital >= Vital.VitalCount)
                 {
                     continue;
                 }
@@ -1506,19 +1539,17 @@ namespace Intersect.Server.Entities
             }
         }
 
-        public override void Warp(
-            Guid newMapId,
+        public override void Warp(Guid newMapId,
             float newX,
             float newY,
-            byte newDir,
+            Direction newDir,
             bool adminWarp = false,
-            byte zOverride = 0,
+            int zOverride = 0,
             bool mapSave = false,
             bool fromWarpEvent = false,
             MapInstanceType? mapInstanceType = null,
             bool fromLogin = false,
-            bool forceInstanceChange = false
-        )
+            bool forceInstanceChange = false)
         {
             if (!MapController.TryGetInstanceFromMap(newMapId, MapInstanceId, out var map))
             {
@@ -1548,44 +1579,43 @@ namespace Intersect.Server.Entities
             }
         }
 
-        public int GetAggression(Player player)
+        /// <summary>
+        /// Determines the aggression of this NPC towards a player.
+        /// </summary>
+        /// <param name="player">The player to check the relationship with.</param>
+        /// <returns>The NPC's aggression towards the player.</returns>
+        public NpcAggression GetAggression(Player player)
         {
-            //Determines the aggression level of this npc to send to the player
             if (this.Target != null)
             {
-                return -1;
+                return NpcAggression.Aggressive;
             }
-            else
+
+            var ally = IsAllyOf(player);
+            var attackOnSight = ShouldAttackPlayerOnSight(player);
+            var canPlayerAttack = CanPlayerAttack(player);
+
+            if (ally && !canPlayerAttack)
             {
-                //Guard = 3
-                //Will attack on sight = 1
-                //Will attack if attacked = 0
-                //Can't attack nor can attack = 2
-                var ally = IsAllyOf(player);
-                var attackOnSight = ShouldAttackPlayerOnSight(player);
-                var canPlayerAttack = CanPlayerAttack(player);
-                if (ally && !canPlayerAttack)
-                {
-                    return 3;
-                }
-
-                if (attackOnSight)
-                {
-                    return 1;
-                }
-
-                if (!ally && !attackOnSight && canPlayerAttack)
-                {
-                    return 0;
-                }
-
-                if (!ally && !attackOnSight && !canPlayerAttack)
-                {
-                    return 2;
-                }
+                return NpcAggression.Guard;
             }
 
-            return 2;
+            if (attackOnSight)
+            {
+                return NpcAggression.AttackOnSight;
+            }
+
+            if (!ally && !attackOnSight && canPlayerAttack)
+            {
+                return NpcAggression.AttackWhenAttacked;
+            }
+
+            if (!ally && !attackOnSight && !canPlayerAttack)
+            {
+                return NpcAggression.Neutral;
+            }
+
+            return NpcAggression.Neutral;
         }
 
         public override EntityPacket EntityPacket(EntityPacket packet = null, Player forPlayer = null)

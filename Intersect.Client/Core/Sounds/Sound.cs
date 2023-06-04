@@ -1,5 +1,3 @@
-﻿using System;
-
 using Intersect.Client.Framework.Audio;
 using Intersect.Client.Framework.Core.Sounds;
 using Intersect.Client.Framework.File_Management;
@@ -16,6 +14,8 @@ namespace Intersect.Client.Core.Sounds
 
         protected string mFilename;
 
+        public string Filename => mFilename;
+
         protected bool mLoop;
 
         protected int mLoopInterval;
@@ -28,7 +28,7 @@ namespace Intersect.Client.Core.Sounds
 
         public Sound(string filename, bool loop, int loopInterval)
         {
-            if (String.IsNullOrEmpty(filename))
+            if (string.IsNullOrWhiteSpace(filename))
             {
                 return;
             }
@@ -72,11 +72,11 @@ namespace Intersect.Client.Core.Sounds
             {
                 if (mStoppedTime == -1)
                 {
-                    mStoppedTime = Timing.Global.Milliseconds;
+                    mStoppedTime = Timing.Global.MillisecondsUtc;
                 }
                 else
                 {
-                    if (mStoppedTime + mLoopInterval < Timing.Global.Milliseconds)
+                    if (mStoppedTime + mLoopInterval < Timing.Global.MillisecondsUtc)
                     {
                         mSound.Play();
                         mStoppedTime = -1;

@@ -117,14 +117,14 @@ namespace Intersect.Server.Migrations
 
                     b.Property<Guid>("ItemId");
 
+                    b.Property<string>("ItemPropertiesJson")
+                        .HasColumnName("ItemProperties");
+
                     b.Property<Guid>("ParentBagId");
 
                     b.Property<int>("Quantity");
 
                     b.Property<int>("Slot");
-
-                    b.Property<string>("StatBuffsJson")
-                        .HasColumnName("StatBuffs");
 
                     b.HasKey("Id");
 
@@ -144,14 +144,14 @@ namespace Intersect.Server.Migrations
 
                     b.Property<Guid>("ItemId");
 
+                    b.Property<string>("ItemPropertiesJson")
+                        .HasColumnName("ItemProperties");
+
                     b.Property<Guid>("PlayerId");
 
                     b.Property<int>("Quantity");
 
                     b.Property<int>("Slot");
-
-                    b.Property<string>("StatBuffsJson")
-                        .HasColumnName("StatBuffs");
 
                     b.HasKey("Id");
 
@@ -209,12 +209,12 @@ namespace Intersect.Server.Migrations
 
                     b.Property<Guid>("ItemId");
 
+                    b.Property<string>("ItemPropertiesJson")
+                        .HasColumnName("ItemProperties");
+
                     b.Property<int>("Quantity");
 
                     b.Property<int>("Slot");
-
-                    b.Property<string>("StatBuffsJson")
-                        .HasColumnName("StatBuffs");
 
                     b.HasKey("Id");
 
@@ -279,14 +279,14 @@ namespace Intersect.Server.Migrations
 
                     b.Property<Guid>("ItemId");
 
+                    b.Property<string>("ItemPropertiesJson")
+                        .HasColumnName("ItemProperties");
+
                     b.Property<Guid>("PlayerId");
 
                     b.Property<int>("Quantity");
 
                     b.Property<int>("Slot");
-
-                    b.Property<string>("StatBuffsJson")
-                        .HasColumnName("StatBuffs");
 
                     b.HasKey("Id");
 

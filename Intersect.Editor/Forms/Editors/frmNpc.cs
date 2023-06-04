@@ -112,7 +112,7 @@ namespace Intersect.Editor.Forms.Editors
             cmbOnDeathEventParty.Items.Add(Strings.General.None);
             cmbOnDeathEventParty.Items.AddRange(EventBase.Names);
             cmbScalingStat.Items.Clear();
-            for (var x = 0; x < (int)Stats.StatCount; x++)
+            for (var x = 0; x < (int)Stat.StatCount; x++)
             {
                 cmbScalingStat.Items.Add(Globals.GetStatName(x));
             }
@@ -243,14 +243,14 @@ namespace Intersect.Editor.Forms.Editors
             lblFolder.Text = Strings.NpcEditor.folderlabel;
 
             grpImmunities.Text = Strings.NpcEditor.ImmunitiesTitle;
-            chkKnockback.Text = Strings.NpcEditor.Immunities[StatusTypes.Knockback];
-            chkSilence.Text = Strings.NpcEditor.Immunities[StatusTypes.Silence];
-            chkStun.Text = Strings.NpcEditor.Immunities[StatusTypes.Stun];
-            chkSnare.Text = Strings.NpcEditor.Immunities[StatusTypes.Snare];
-            chkBlind.Text = Strings.NpcEditor.Immunities[StatusTypes.Blind];
-            chkTransform.Text = Strings.NpcEditor.Immunities[StatusTypes.Transform];
-            chkTaunt.Text = Strings.NpcEditor.Immunities[StatusTypes.Taunt];
-            chkSleep.Text = Strings.NpcEditor.Immunities[StatusTypes.Sleep];
+            chkKnockback.Text = Strings.NpcEditor.Immunities[SpellEffect.Knockback];
+            chkSilence.Text = Strings.NpcEditor.Immunities[SpellEffect.Silence];
+            chkStun.Text = Strings.NpcEditor.Immunities[SpellEffect.Stun];
+            chkSnare.Text = Strings.NpcEditor.Immunities[SpellEffect.Snare];
+            chkBlind.Text = Strings.NpcEditor.Immunities[SpellEffect.Blind];
+            chkTransform.Text = Strings.NpcEditor.Immunities[SpellEffect.Transform];
+            chkTaunt.Text = Strings.NpcEditor.Immunities[SpellEffect.Taunt];
+            chkSleep.Text = Strings.NpcEditor.Immunities[SpellEffect.Sleep];
             lblTenacity.Text = Strings.NpcEditor.Tenacity;
 
             btnSave.Text = Strings.NpcEditor.save;
@@ -296,13 +296,13 @@ namespace Intersect.Editor.Forms.Editors
                 cmbOnDeathEventKiller.SelectedIndex = EventBase.ListIndex(mEditorItem.OnDeathEventId) + 1;
                 cmbOnDeathEventParty.SelectedIndex = EventBase.ListIndex(mEditorItem.OnDeathPartyEventId) + 1;
 
-                nudStr.Value = mEditorItem.Stats[(int) Stats.Attack];
-                nudMag.Value = mEditorItem.Stats[(int) Stats.AbilityPower];
-                nudDef.Value = mEditorItem.Stats[(int) Stats.Defense];
-                nudMR.Value = mEditorItem.Stats[(int) Stats.MagicResist];
-                nudSpd.Value = mEditorItem.Stats[(int) Stats.Speed];
-                nudHp.Value = mEditorItem.MaxVital[(int) Vitals.Health];
-                nudMana.Value = mEditorItem.MaxVital[(int) Vitals.Mana];
+                nudStr.Value = mEditorItem.Stats[(int) Stat.Attack];
+                nudMag.Value = mEditorItem.Stats[(int) Stat.AbilityPower];
+                nudDef.Value = mEditorItem.Stats[(int) Stat.Defense];
+                nudMR.Value = mEditorItem.Stats[(int) Stat.MagicResist];
+                nudSpd.Value = mEditorItem.Stats[(int) Stat.Speed];
+                nudHp.Value = mEditorItem.MaxVital[(int) Vital.Health];
+                nudMana.Value = mEditorItem.MaxVital[(int) Vital.Mana];
                 nudExp.Value = mEditorItem.Experience;
                 chkAttackAllies.Checked = mEditorItem.AttackAllies;
                 chkEnabled.Checked = mEditorItem.NpcVsNpcEnabled;
@@ -319,8 +319,8 @@ namespace Intersect.Editor.Forms.Editors
                 nudAttackSpeedValue.Value = mEditorItem.AttackSpeedValue;
 
                 //Regen
-                nudHpRegen.Value = mEditorItem.VitalRegen[(int) Vitals.Health];
-                nudMpRegen.Value = mEditorItem.VitalRegen[(int) Vitals.Mana];
+                nudHpRegen.Value = mEditorItem.VitalRegen[(int) Vital.Health];
+                nudMpRegen.Value = mEditorItem.VitalRegen[(int) Vital.Mana];
 
                 // Add the spells to the list
                 lstSpells.Items.Clear();
@@ -602,14 +602,14 @@ namespace Intersect.Editor.Forms.Editors
 
         private void UpdateImmunities()
         {
-            chkKnockback.Checked = mEditorItem.Immunities.Contains(StatusTypes.Knockback);
-            chkSilence.Checked = mEditorItem.Immunities.Contains(StatusTypes.Silence);
-            chkSnare.Checked = mEditorItem.Immunities.Contains(StatusTypes.Snare);
-            chkStun.Checked = mEditorItem.Immunities.Contains(StatusTypes.Stun);
-            chkSleep.Checked = mEditorItem.Immunities.Contains(StatusTypes.Sleep);
-            chkTransform.Checked = mEditorItem.Immunities.Contains(StatusTypes.Transform);
-            chkTaunt.Checked = mEditorItem.Immunities.Contains(StatusTypes.Taunt);
-            chkBlind.Checked = mEditorItem.Immunities.Contains(StatusTypes.Blind);
+            chkKnockback.Checked = mEditorItem.Immunities.Contains(SpellEffect.Knockback);
+            chkSilence.Checked = mEditorItem.Immunities.Contains(SpellEffect.Silence);
+            chkSnare.Checked = mEditorItem.Immunities.Contains(SpellEffect.Snare);
+            chkStun.Checked = mEditorItem.Immunities.Contains(SpellEffect.Stun);
+            chkSleep.Checked = mEditorItem.Immunities.Contains(SpellEffect.Sleep);
+            chkTransform.Checked = mEditorItem.Immunities.Contains(SpellEffect.Transform);
+            chkTaunt.Checked = mEditorItem.Immunities.Contains(SpellEffect.Taunt);
+            chkBlind.Checked = mEditorItem.Immunities.Contains(SpellEffect.Blind);
         }
 
         private void form_KeyDown(object sender, KeyEventArgs e)
@@ -681,27 +681,27 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudStr_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.Stats[(int) Stats.Attack] = (int) nudStr.Value;
+            mEditorItem.Stats[(int) Stat.Attack] = (int) nudStr.Value;
         }
 
         private void nudMag_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.Stats[(int) Stats.AbilityPower] = (int) nudMag.Value;
+            mEditorItem.Stats[(int) Stat.AbilityPower] = (int) nudMag.Value;
         }
 
         private void nudDef_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.Stats[(int) Stats.Defense] = (int) nudDef.Value;
+            mEditorItem.Stats[(int) Stat.Defense] = (int) nudDef.Value;
         }
 
         private void nudMR_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.Stats[(int) Stats.MagicResist] = (int) nudMR.Value;
+            mEditorItem.Stats[(int) Stat.MagicResist] = (int) nudMR.Value;
         }
 
         private void nudSpd_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.Stats[(int) Stats.Speed] = (int) nudSpd.Value;
+            mEditorItem.Stats[(int) Stat.Speed] = (int) nudSpd.Value;
         }
 
         private void nudDamage_ValueChanged(object sender, EventArgs e)
@@ -716,12 +716,12 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudHp_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.MaxVital[(int) Vitals.Health] = (int) nudHp.Value;
+            mEditorItem.MaxVital[(int) Vital.Health] = (int) nudHp.Value;
         }
 
         private void nudMana_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.MaxVital[(int) Vitals.Mana] = (int) nudMana.Value;
+            mEditorItem.MaxVital[(int) Vital.Mana] = (int) nudMana.Value;
         }
 
         private void nudExp_ValueChanged(object sender, EventArgs e)
@@ -808,12 +808,12 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudHpRegen_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.VitalRegen[(int) Vitals.Health] = (int) nudHpRegen.Value;
+            mEditorItem.VitalRegen[(int) Vital.Health] = (int) nudHpRegen.Value;
         }
 
         private void nudMpRegen_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.VitalRegen[(int) Vitals.Mana] = (int) nudMpRegen.Value;
+            mEditorItem.VitalRegen[(int) Vital.Mana] = (int) nudMpRegen.Value;
         }
 
         private void chkAggressive_CheckedChanged(object sender, EventArgs e)
@@ -1049,7 +1049,7 @@ namespace Intersect.Editor.Forms.Editors
 
         #endregion
 
-        private void ChangeImmunity(StatusTypes status, bool isImmune)
+        private void ChangeImmunity(SpellEffect status, bool isImmune)
         {
             if (isImmune && !mEditorItem.Immunities.Contains(status))
             {
@@ -1063,42 +1063,42 @@ namespace Intersect.Editor.Forms.Editors
 
         private void chkKnockback_CheckedChanged(object sender, EventArgs e)
         {
-            ChangeImmunity(StatusTypes.Knockback, chkKnockback.Checked);
+            ChangeImmunity(SpellEffect.Knockback, chkKnockback.Checked);
         }
 
         private void chkSilence_CheckedChanged(object sender, EventArgs e)
         {
-            ChangeImmunity(StatusTypes.Silence, chkSilence.Checked);
+            ChangeImmunity(SpellEffect.Silence, chkSilence.Checked);
         }
 
         private void chkStun_CheckedChanged(object sender, EventArgs e)
         {
-            ChangeImmunity(StatusTypes.Stun, chkStun.Checked);
+            ChangeImmunity(SpellEffect.Stun, chkStun.Checked);
         }
 
         private void chkSnare_CheckedChanged(object sender, EventArgs e)
         {
-            ChangeImmunity(StatusTypes.Snare, chkSnare.Checked);
+            ChangeImmunity(SpellEffect.Snare, chkSnare.Checked);
         }
 
         private void chkBlind_CheckedChanged(object sender, EventArgs e)
         {
-            ChangeImmunity(StatusTypes.Blind, chkBlind.Checked);
+            ChangeImmunity(SpellEffect.Blind, chkBlind.Checked);
         }
 
         private void chkTransform_CheckedChanged(object sender, EventArgs e)
         {
-            ChangeImmunity(StatusTypes.Transform, chkTransform.Checked);
+            ChangeImmunity(SpellEffect.Transform, chkTransform.Checked);
         }
 
         private void chkSleep_CheckedChanged(object sender, EventArgs e)
         {
-            ChangeImmunity(StatusTypes.Sleep, chkSleep.Checked);
+            ChangeImmunity(SpellEffect.Sleep, chkSleep.Checked);
         }
 
         private void chkTaunt_CheckedChanged(object sender, EventArgs e)
         {
-            ChangeImmunity(StatusTypes.Taunt, chkTaunt.Checked);
+            ChangeImmunity(SpellEffect.Taunt, chkTaunt.Checked);
         }
 
         private void nudTenacity_ValueChanged(object sender, EventArgs e)

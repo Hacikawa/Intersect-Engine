@@ -61,7 +61,7 @@ namespace Intersect.Server.Web.RestApi
 
         public void Configure(IAppBuilder appBuilder)
         {
-            // Configure Web API for self-host. 
+            // Configure Web API for self-host.
             var config = new HttpConfiguration();
 
             var services = config.Services;
@@ -77,7 +77,7 @@ namespace Intersect.Server.Web.RestApi
                 .ForEach(corsOptions => appBuilder.UseCors(corsOptions));
 
             var constraintResolver = new DefaultInlineConstraintResolver();
-            constraintResolver.ConstraintMap?.Add(nameof(AdminActions), typeof(AdminActionsConstraint));
+            constraintResolver.ConstraintMap?.Add(nameof(AdminAction), typeof(AdminActionsConstraint));
             constraintResolver.ConstraintMap?.Add(nameof(LookupKey), typeof(LookupKey.Constraint));
             constraintResolver.ConstraintMap?.Add(nameof(ChatMessage), typeof(ChatMessage.Constraint));
 
@@ -93,7 +93,7 @@ namespace Intersect.Server.Web.RestApi
 
             if (Configuration.DebugMode)
             {
-                SwaggerIsolation.ConfigureSwagger(config);
+                // SwaggerIsolation.ConfigureSwagger(config);
 
                 appBuilder.SetLoggerFactory(new IntersectLoggerFactory());
             }

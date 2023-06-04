@@ -4,7 +4,6 @@ using System.Linq;
 
 using Intersect.Enums;
 using Intersect.GameObjects;
-using Intersect.Server.General;
 using Intersect.Utilities;
 
 namespace Intersect.Server.Entities.Combat
@@ -39,7 +38,7 @@ namespace Intersect.Server.Entities.Combat
             {
                 foreach (var status in Target.CachedStatuses)
                 {
-                    if (status.Type == StatusTypes.Cleanse)
+                    if (status.Type == SpellEffect.Cleanse)
                     {
                         return;
                     }
@@ -95,27 +94,27 @@ namespace Intersect.Server.Entities.Combat
                 return;
             }
 
-            var deadAnimations = new List<KeyValuePair<Guid, sbyte>>();
-            var aliveAnimations = new List<KeyValuePair<Guid, sbyte>>();
+            var deadAnimations = new List<KeyValuePair<Guid, Direction>>();
+            var aliveAnimations = new List<KeyValuePair<Guid, Direction>>();
             if (SpellBase.TickAnimationId != Guid.Empty)
             {
-                var animation = new KeyValuePair<Guid, sbyte>(SpellBase.TickAnimationId, (sbyte)Directions.Up);
-                deadAnimations.Add(animation);
-                aliveAnimations.Add(animation);
-            } else if (SpellBase.HitAnimationId != Guid.Empty)
-            {
-                var animation = new KeyValuePair<Guid, sbyte>(SpellBase.HitAnimationId, (sbyte)Directions.Up);
+                var animation = new KeyValuePair<Guid, Direction>(SpellBase.TickAnimationId, Direction.Up);
                 deadAnimations.Add(animation);
                 aliveAnimations.Add(animation);
             }
-            
+            else if (SpellBase.HitAnimationId != Guid.Empty)
+            {
+                var animation = new KeyValuePair<Guid, Direction>(SpellBase.HitAnimationId, Direction.Up);
+                deadAnimations.Add(animation);
+                aliveAnimations.Add(animation);
+            }
 
-            var damageHealth = SpellBase.Combat.VitalDiff[(int)Vitals.Health];
-            var damageMana = SpellBase.Combat.VitalDiff[(int)Vitals.Mana];
+            var damageHealth = SpellBase.Combat.VitalDiff[(int)Vital.Health];
+            var damageMana = SpellBase.Combat.VitalDiff[(int)Vital.Mana];
 
             Attacker?.Attack(
                 Target, damageHealth, damageMana,
-                (DamageType) SpellBase.Combat.DamageType, (Stats) SpellBase.Combat.ScalingStat,
+                (DamageType)SpellBase.Combat.DamageType, (Enums.Stat)SpellBase.Combat.ScalingStat,
                 SpellBase.Combat.Scaling, SpellBase.Combat.CritChance, SpellBase.Combat.CritMultiplier, deadAnimations,
                 aliveAnimations, false
             );

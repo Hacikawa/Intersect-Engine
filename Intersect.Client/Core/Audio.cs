@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using Intersect.Client.Core.Sounds;
 using Intersect.Client.Framework.Audio;
 using Intersect.Client.Framework.Core.Sounds;
 using Intersect.Client.Framework.Entities;
 using Intersect.Client.Framework.File_Management;
 using Intersect.Client.General;
-using Intersect.Configuration;
 using Intersect.Logging;
 using Intersect.Utilities;
 
@@ -73,7 +72,7 @@ namespace Intersect.Client.Core
         {
             if (sMyMusic != null)
             {
-                var currentTime = Timing.Global.Milliseconds;
+                var currentTime = Timing.Global.MillisecondsUtc;
                 if (sFadeTimer != 0 && sFadeTimer < currentTime)
                 {
                     if (sFadingOut)
@@ -207,7 +206,7 @@ namespace Intersect.Client.Core
             sMyMusic.SetVolume(0, true);
             sMyMusic.IsLooping = loop;
             sFadeRate = fadein / 100;
-            sFadeTimer = Timing.Global.Milliseconds + sFadeRate;
+            sFadeTimer = Timing.Global.MillisecondsUtc + sFadeRate;
             sFadingOut = false;
         }
 
@@ -237,7 +236,7 @@ namespace Intersect.Client.Core
             {
                 //Start fadeout
                 sFadeRate = fadeout / sMyMusic.GetVolume();
-                sFadeTimer = Timing.Global.Milliseconds + sFadeRate;
+                sFadeTimer = Timing.Global.MillisecondsUtc + sFadeRate;
                 sFadingOut = true;
             }
         }
@@ -281,6 +280,15 @@ namespace Intersect.Client.Core
         public static void StopSound(IMapSound sound)
         {
             sound?.Stop();
+        }
+
+        public static void StopAllGameSoundsOf(string[] filenames)
+        {
+            var validSounds = sGameSounds.Where(s => filenames.Contains(s.Filename));
+            foreach (var sound in validSounds)
+            {
+                sound.Stop();
+            }
         }
 
         public static void StopAllSounds()

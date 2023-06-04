@@ -130,7 +130,7 @@ namespace Intersect.GameObjects.Events.Commands
 
         public string Text { get; set; } = "";
 
-        public VariableTypes VariableType { get; set; } = VariableTypes.PlayerVariable;
+        public VariableType VariableType { get; set; } = VariableType.PlayerVariable;
 
         public Guid VariableId { get; set; } = new Guid();
 
@@ -195,7 +195,7 @@ namespace Intersect.GameObjects.Events.Commands
 
         public override EventCommandType Type { get; } = EventCommandType.SetVariable;
 
-        public VariableTypes VariableType { get; set; } = VariableTypes.PlayerVariable;
+        public VariableType VariableType { get; set; } = VariableType.PlayerVariable;
 
         public Guid VariableId { get; set; }
 
@@ -347,7 +347,7 @@ namespace Intersect.GameObjects.Events.Commands
         /// <summary>
         /// Defines whether the variable used is a Player or Global variable.
         /// </summary>
-        public VariableTypes VariableType { get; set; } = VariableTypes.PlayerVariable;
+        public VariableType VariableType { get; set; } = VariableType.PlayerVariable;
 
         /// <summary>
         /// The Variable Id to use.
@@ -460,7 +460,7 @@ namespace Intersect.GameObjects.Events.Commands
         /// <summary>
         /// Defines whether the variable used is a Player or Global variable.
         /// </summary>
-        public VariableTypes VariableType { get; set; } = VariableTypes.PlayerVariable;
+        public VariableType VariableType { get; set; } = VariableType.PlayerVariable;
 
         /// <summary>
         /// The Variable Id to use.
@@ -630,7 +630,7 @@ namespace Intersect.GameObjects.Events.Commands
 
         public Guid NpcId { get; set; }
 
-        public byte Dir { get; set; }
+        public Direction Dir { get; set; }
 
         //Tile Spawn Variables  (Will spawn on map tile if mapid is not empty)
         public Guid MapId { get; set; }
@@ -1085,7 +1085,7 @@ namespace Intersect.GameObjects.Events.Commands
 
         public override EventCommandType Type { get; } = EventCommandType.SetGuildBankSlots;
 
-        public VariableTypes VariableType { get; set; }
+        public VariableType VariableType { get; set; }
 
         public Guid VariableId { get; set; }
 

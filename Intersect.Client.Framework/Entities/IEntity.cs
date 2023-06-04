@@ -11,7 +11,7 @@ namespace Intersect.Client.Framework.Entities
     public interface IEntity : IDisposable
     {
         Guid Id { get; }
-        EntityTypes Type { get; }
+        EntityType Type { get; }
         string Name { get; }
         Gender Gender { get; }
         Color NameColor { get; }
@@ -37,7 +37,7 @@ namespace Intersect.Client.Framework.Entities
         bool InView { get; }
         IMapInstance MapInstance { get; }
         Guid MapId { get; }
-        byte Dir { get; }
+        Direction Dir { get; }
         byte X { get; }
         byte Y { get; }
         byte Z { get; }
@@ -49,7 +49,7 @@ namespace Intersect.Client.Framework.Entities
         IReadOnlyList<int> EquipmentSlots { get; }
         IReadOnlyList<Guid> Spells { get; }
         IReadOnlyList<IStatus> Status { get; }
-        int Aggression { get; }
+        NpcAggression Aggression { get; }
 
         void AddChatBubble(string text);
         float GetLabelLocation(LabelType type);

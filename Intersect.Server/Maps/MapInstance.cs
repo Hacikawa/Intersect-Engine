@@ -10,11 +10,11 @@ using Intersect.Logging;
 using Intersect.Network.Packets.Server;
 using Intersect.Server.Database;
 using Intersect.Server.Entities.Events;
-using Intersect.Server.General;
 using Intersect.Server.Networking;
 using Intersect.Utilities;
 using Intersect.Server.Entities;
 using Intersect.Server.Classes.Maps;
+using MapAttribute = Intersect.Enums.MapAttribute;
 
 namespace Intersect.Server.Maps
 {
@@ -115,7 +115,7 @@ namespace Intersect.Server.Maps
 
         // Items
         public ConcurrentDictionary<Guid, MapItemSpawn> ItemRespawns = new ConcurrentDictionary<Guid, MapItemSpawn>();
-        public ConcurrentDictionary<Guid, MapItem>[] TileItems { get; } = new ConcurrentDictionary<Guid, MapItem>[Options.Instance.MapOpts.Width * Options.Instance.MapOpts.Height];
+        public ConcurrentDictionary<Guid, MapItem>[] TileItems { get; } = new ConcurrentDictionary<Guid, MapItem>[Options.Instance.MapOpts.MapWidth * Options.Instance.MapOpts.MapHeight];
         public ConcurrentDictionary<Guid, MapItem> AllMapItems { get; } = new ConcurrentDictionary<Guid, MapItem>();
 
         // Resources
@@ -427,7 +427,7 @@ namespace Intersect.Server.Maps
                     _ = NpcSpawnInstances.TryAdd(spawn, npcSpawnInstance);
                 }
 
-                FindNpcSpawnLocation(spawn, out var x, out var y, out var dir);
+                FindNpcSpawnLocation(spawn, out var x, out var y, out Direction dir);
 
                 npcSpawnInstance.Entity = SpawnNpc((byte) x, (byte) y, dir, spawn.NpcId);
             }
@@ -440,7 +440,7 @@ namespace Intersect.Server.Maps
         /// <param name="x">The X-coordinate to spawn at; out</param>
         /// <param name="y">The Y-coordinate to spawn at; out</param>
         /// <param name="dir">The direction to spawn at; out</param>
-        private void FindNpcSpawnLocation(NpcSpawn spawn, out int x, out int y, out byte dir)
+        private void FindNpcSpawnLocation(NpcSpawn spawn, out int x, out int y, out Direction dir)
         {
             dir = 0;
             x = 0;
@@ -448,11 +448,11 @@ namespace Intersect.Server.Maps
 
             if (spawn.Direction != NpcSpawnDirection.Random)
             {
-                dir = (byte)(spawn.Direction - 1);
+                dir = (Direction)(spawn.Direction - 1);
             }
             else
             {
-                dir = (byte)Randomization.Next(0, Options.Instance.Sprites.Directions);
+                dir = Randomization.NextDirection();
             }
 
             if (spawn.X >= 0 && spawn.Y >= 0)
@@ -466,7 +466,7 @@ namespace Intersect.Server.Maps
                 {
                     x = (byte)Randomization.Next(0, Options.MapWidth);
                     y = (byte)Randomization.Next(0, Options.MapHeight);
-                    if (mMapController.Attributes[x, y] == null || mMapController.Attributes[x, y].Type == (int)MapAttributes.Walkable)
+                    if (mMapController.Attributes[x, y] == null || mMapController.Attributes[x, y].Type == (int)MapAttribute.Walkable)
                     {
                         break;
                     }
@@ -486,7 +486,7 @@ namespace Intersect.Server.Maps
         /// <param name="npcId">NPC Entity ID to spawn</param>
         /// <param name="despawnable">Whether or not this NPC can be despawned (for example, if spawned via event command)</param>
         /// <returns></returns>
-        public Npc SpawnNpc(byte tileX, byte tileY, byte dir, Guid npcId, bool despawnable = false)
+        public Npc SpawnNpc(byte tileX, byte tileY, Direction dir, Guid npcId, bool despawnable = false)
         {
             var npcBase = NpcBase.Get(npcId);
             if (npcBase != null)
@@ -747,7 +747,7 @@ namespace Intersect.Server.Maps
 
             // if we can stack this item or the user configured to drop items consolidated, simply spawn a single stack of it.
             // Does not count for Equipment and bags, these are ALWAYS their own separate item spawn. We don't want to lose data on that!
-            if ((itemDescriptor.ItemType != ItemTypes.Equipment && itemDescriptor.ItemType != ItemTypes.Bag) &&
+            if ((itemDescriptor.ItemType != ItemType.Equipment && itemDescriptor.ItemType != ItemType.Bag) &&
                 (itemDescriptor.Stackable || Options.Loot.ConsolidateMapDrops))
             {
                 // Does this item already exist on this tile? If so, get its value so we can simply consolidate the stack.
@@ -808,7 +808,7 @@ namespace Intersect.Server.Maps
                     };
 
                     // If this is a piece of equipment, set up the stat buffs for it.
-                    if (itemDescriptor.ItemType == ItemTypes.Equipment)
+                    if (itemDescriptor.ItemType == ItemType.Equipment)
                     {
                         mapItem.SetupStatBuffs(item);
                     }
@@ -916,7 +916,7 @@ namespace Intersect.Server.Maps
                 mapItem.DespawnTime = -1;
                 mapItem.AttributeSpawnX = x;
                 mapItem.AttributeSpawnY = y;
-                if (item.ItemType == ItemTypes.Equipment)
+                if (item.ItemType == ItemType.Equipment)
                 {
                     mapItem.Quantity = 1;
                 }
@@ -937,11 +937,11 @@ namespace Intersect.Server.Maps
                 {
                     if (mMapController.Attributes[x, y] != null)
                     {
-                        if (mMapController.Attributes[x, y].Type == MapAttributes.Item)
+                        if (mMapController.Attributes[x, y].Type == MapAttribute.Item)
                         {
                             SpawnAttributeItem(x, y);
                         }
-                        else if (mMapController.Attributes[x, y].Type == MapAttributes.Resource)
+                        else if (mMapController.Attributes[x, y].Type == MapAttribute.Resource)
                         {
                             SpawnAttributeResource(x, y);
                         }
@@ -974,7 +974,7 @@ namespace Intersect.Server.Maps
             byte x,
             byte y,
             byte z,
-            byte direction,
+            Direction direction,
             Entity target
         )
         {
@@ -1112,8 +1112,8 @@ namespace Intersect.Server.Maps
             }
 
             //Check if tile is a blocked attribute
-            if (mMapController.Attributes[x, y] != null && (mMapController.Attributes[x, y].Type == MapAttributes.Blocked ||
-                mMapController.Attributes[x, y].Type == MapAttributes.Animation && ((MapAnimationAttribute)mMapController.Attributes[x, y]).IsBlock))
+            if (mMapController.Attributes[x, y] != null && (mMapController.Attributes[x, y].Type == MapAttribute.Blocked ||
+                mMapController.Attributes[x, y].Type == MapAttribute.Animation && ((MapAnimationAttribute)mMapController.Attributes[x, y]).IsBlock))
             {
                 return true;
             }
@@ -1178,14 +1178,14 @@ namespace Intersect.Server.Maps
                 {
                     if (mMapController.Attributes[x, y] != null)
                     {
-                        if (mMapController.Attributes[x, y].Type == MapAttributes.Blocked ||
-                            mMapController.Attributes[x, y].Type == MapAttributes.GrappleStone ||
-                            mMapController.Attributes[x, y].Type == MapAttributes.Animation && ((MapAnimationAttribute)mMapController.Attributes[x, y]).IsBlock)
+                        if (mMapController.Attributes[x, y].Type == MapAttribute.Blocked ||
+                            mMapController.Attributes[x, y].Type == MapAttribute.GrappleStone ||
+                            mMapController.Attributes[x, y].Type == MapAttribute.Animation && ((MapAnimationAttribute)mMapController.Attributes[x, y]).IsBlock)
                         {
                             blocks.Add(new BytePoint(x, y));
                             npcBlocks.Add(new BytePoint(x, y));
                         }
-                        else if (mMapController.Attributes[x, y].Type == MapAttributes.NpcAvoid)
+                        else if (mMapController.Attributes[x, y].Type == MapAttribute.NpcAvoid)
                         {
                             npcBlocks.Add(new BytePoint(x, y));
                         }
@@ -1225,8 +1225,8 @@ namespace Intersect.Server.Maps
                     //Regen Everything & Forget Targets
                     if (en.Value is Resource || en.Value is Npc)
                     {
-                        en.Value.RestoreVital(Vitals.Health);
-                        en.Value.RestoreVital(Vitals.Mana);
+                        en.Value.RestoreVital(Vital.Health);
+                        en.Value.RestoreVital(Vital.Mana);
 
                         if (en.Value is Npc npc)
                         {
@@ -1267,7 +1267,7 @@ namespace Intersect.Server.Maps
 
                 foreach (var status in en.Value.CachedStatuses)
                 {
-                    if (status.Type == StatusTypes.Shield)
+                    if (status.Type == SpellEffect.Shield)
                     {
                         statusUpdates.Add(en.Value);
                     }

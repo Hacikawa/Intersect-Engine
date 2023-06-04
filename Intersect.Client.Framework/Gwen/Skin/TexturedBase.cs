@@ -191,7 +191,7 @@ namespace Intersect.Client.Framework.Gwen.Skin
 
             public Bordered BackgroundWithMargin;
 
-            public Bordered Hover;
+            public Bordered Hovered;
 
         }
 
@@ -590,7 +590,7 @@ namespace Intersect.Client.Framework.Gwen.Skin
             mTextures.Menu.Strip = new Bordered(mTexture, 0, 128, 127, 21, Margin.One);
             mTextures.Menu.BackgroundWithMargin = new Bordered(mTexture, 128, 128, 127, 63, new Margin(24, 8, 8, 8));
             mTextures.Menu.Background = new Bordered(mTexture, 128, 192, 127, 63, Margin.Eight);
-            mTextures.Menu.Hover = new Bordered(mTexture, 128, 256, 127, 31, Margin.Eight);
+            mTextures.Menu.Hovered = new Bordered(mTexture, 320, 320, 32, 32, Margin.Six);
             mTextures.Menu.RightArrow = new Single(mTexture, 464, 112, 15, 15);
             mTextures.Menu.Check = new Single(mTexture, 448, 112, 15, 15);
 
@@ -645,12 +645,12 @@ namespace Intersect.Client.Framework.Gwen.Skin
                 );
             }
 
-            mTextures.Input.ListBox.Background = new Bordered(mTexture, 256, 256, 63, 127, Margin.Eight);
-            mTextures.Input.ListBox.Hovered = new Bordered(mTexture, 320, 320, 31, 31, Margin.Eight);
-            mTextures.Input.ListBox.EvenLine = new Bordered(mTexture, 352, 256, 31, 31, Margin.Eight);
-            mTextures.Input.ListBox.OddLine = new Bordered(mTexture, 352, 288, 31, 31, Margin.Eight);
-            mTextures.Input.ListBox.EvenLineSelected = new Bordered(mTexture, 320, 270, 31, 31, Margin.Eight);
-            mTextures.Input.ListBox.OddLineSelected = new Bordered(mTexture, 320, 288, 31, 31, Margin.Eight);
+            mTextures.Input.ListBox.Background = new Bordered(mTexture, 256, 256, 63, 127, Margin.Six);
+            mTextures.Input.ListBox.Hovered = new Bordered(mTexture, 320, 320, 32, 32, Margin.Six);
+            mTextures.Input.ListBox.EvenLine = new Bordered(mTexture, 352, 256, 32, 32, Margin.Six);
+            mTextures.Input.ListBox.EvenLineSelected = new Bordered(mTexture, 320, 256, 32, 32, Margin.Six);
+            mTextures.Input.ListBox.OddLine = new Bordered(mTexture, 352, 288, 32, 32, Margin.Six);
+            mTextures.Input.ListBox.OddLineSelected = new Bordered(mTexture, 320, 288, 32, 32, Margin.Six);
 
             mTextures.Input.ComboBox.Normal = new Bordered(mTexture, 384, 336, 127, 31, new Margin(8, 8, 32, 8));
             mTextures.Input.ComboBox.Hover = new Bordered(mTexture, 384, 336 + 32, 127, 31, new Margin(8, 8, 32, 8));
@@ -776,8 +776,11 @@ namespace Intersect.Client.Framework.Gwen.Skin
                 return;
             }
 
-            //if (submenuOpen || control.IsHovered)
-            //    mTextures.Menu.Hover.Draw(Renderer, control.RenderBounds, control.RenderColor);
+            if (submenuOpen || control.IsHovered)
+            {
+                mTextures.Menu.Hovered.Draw(Renderer, control.RenderBounds, control.RenderColor);
+                return;
+            }
 
             if (isChecked)
             {
@@ -1537,31 +1540,27 @@ namespace Intersect.Client.Framework.Gwen.Skin
                 return;
             }
 
+            if (control.IsHovered)
+            {
+                mTextures.Input.ListBox.Hovered.Draw(Renderer, control.RenderBounds, control.RenderColor);
+                return;
+            }
+
             if (selected)
             {
                 if (even)
                 {
                     mTextures.Input.ListBox.EvenLineSelected.Draw(Renderer, control.RenderBounds, control.RenderColor);
-
                     return;
                 }
 
                 mTextures.Input.ListBox.OddLineSelected.Draw(Renderer, control.RenderBounds, control.RenderColor);
-
-                return;
-            }
-
-            if (control.IsHovered)
-            {
-                mTextures.Input.ListBox.Hovered.Draw(Renderer, control.RenderBounds, control.RenderColor);
-
                 return;
             }
 
             if (even)
             {
                 mTextures.Input.ListBox.EvenLine.Draw(Renderer, control.RenderBounds, control.RenderColor);
-
                 return;
             }
 

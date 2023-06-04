@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
-
+using Intersect.Enums;
 using Intersect.GameObjects;
 using Intersect.Server.Entities.Combat;
 using Intersect.Server.Entities.Events;
-using Intersect.Server.General;
-using Intersect.Server.Networking;
 using Intersect.Utilities;
 
 namespace Intersect.Server.Entities
@@ -14,7 +12,7 @@ namespace Intersect.Server.Entities
     public partial class ProjectileSpawn
     {
 
-        public byte Dir;
+        public Direction Dir;
 
         public int Distance;
 
@@ -39,7 +37,7 @@ namespace Intersect.Server.Entities
         private List<Guid> mEntitiesCollided = new List<Guid>();
 
         public ProjectileSpawn(
-            byte dir,
+            Direction dir,
             byte x,
             byte y,
             byte z,
@@ -84,7 +82,7 @@ namespace Intersect.Server.Entities
                     {
                         if(targetPlayer != null)
                         {
-                            if(targetPlayer.Map.ZoneType == Enums.MapZones.Safe ||
+                            if(targetPlayer.Map.ZoneType == Enums.MapZone.Safe ||
                                 Parent.Owner is Player plyr && plyr.InParty(targetPlayer))
                             {
                                 return false;
@@ -106,14 +104,14 @@ namespace Intersect.Server.Entities
                     {
                         Parent.Owner.TryAttack(targetEntity, Parent.Base, Parent.Spell, Parent.Item, Dir);
 
-                        if (Dir <= 3 && ShouldHook(targetEntity) && !Parent.HasGrappled)
+                        if (Dir <= Direction.Right && ShouldHook(targetEntity) && !Parent.HasGrappled)
                         {
                             HookEntity();
                         }
 
                         if (!Parent.Base.PierceTarget)
                         {
-                            if (targetPlayer.Map.ZoneType == Enums.MapZones.Safe ||
+                            if (targetPlayer.Map.ZoneType == Enums.MapZone.Safe ||
                                 Parent.Owner is Player plyr && plyr.InParty(targetPlayer))
                             {
                                 return false;
@@ -136,7 +134,7 @@ namespace Intersect.Server.Entities
                     {
                         Parent.Owner.TryAttack(targetResource, Parent.Base, Parent.Spell, Parent.Item, Dir);
 
-                        if (Dir <= 3 && ShouldHook(targetResource) && !Parent.HasGrappled)
+                        if (Dir <= Direction.Right && ShouldHook(targetResource) && !Parent.HasGrappled)
                         {
                             HookEntity();
                         }
@@ -152,7 +150,7 @@ namespace Intersect.Server.Entities
                     {
                         Parent.Owner.TryAttack(targetEntity, Parent.Base, Parent.Spell, Parent.Item, Dir);
 
-                        if (Dir <= 3 && ShouldHook(targetEntity) && !Parent.HasGrappled) 
+                        if (Dir <= Direction.Right && ShouldHook(targetEntity) && !Parent.HasGrappled) 
                         {
                             HookEntity();
                         }
@@ -183,13 +181,13 @@ namespace Intersect.Server.Entities
             switch(en)
             {
                 case Player _:
-                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOptions.Player);
+                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOption.Player);
 
                 case Npc _:
-                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOptions.NPC);
+                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOption.NPC);
 
                 case Resource _:
-                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOptions.Resource);
+                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOption.Resource);
 
                 default:
                     throw new ArgumentException($"Unsupported entity type {en.GetType().FullName}", nameof(en));
@@ -205,7 +203,7 @@ namespace Intersect.Server.Entities
             Parent.HasGrappled = true;
             Parent.Owner.Dir = Dir;
             var _ = new Dash(
-                Parent.Owner, Distance, (byte)Parent.Owner.Dir, Parent.Base.IgnoreMapBlocks,
+                Parent.Owner, Distance, Parent.Owner.Dir, Parent.Base.IgnoreMapBlocks,
                 Parent.Base.IgnoreActiveResources, Parent.Base.IgnoreExhaustedResources,
                 Parent.Base.IgnoreZDimension
             );

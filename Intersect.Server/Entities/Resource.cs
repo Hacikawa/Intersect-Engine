@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Web.UI;
 using Intersect.Enums;
 using Intersect.GameObjects;
 using Intersect.Network.Packets.Server;
 using Intersect.Server.Database;
 using Intersect.Server.Database.PlayerData.Players;
-using Intersect.Server.General;
 using Intersect.Server.Maps;
 using Intersect.Server.Networking;
 using Intersect.Utilities;
@@ -29,13 +27,13 @@ namespace Intersect.Server.Entities
             Name = resource.Name;
             Sprite = resource.Initial.Graphic;
             SetMaxVital(
-                Vitals.Health,
+                Vital.Health,
                 Randomization.Next(
                     Math.Min(1, resource.MinHp), Math.Max(resource.MaxHp, Math.Min(1, resource.MinHp)) + 1
                 )
             );
 
-            RestoreVital(Vitals.Health);
+            RestoreVital(Vital.Health);
             Passable = resource.WalkableBefore;
             HideName = true;
         }
@@ -68,7 +66,7 @@ namespace Intersect.Server.Entities
                 if (Base.AnimationId != Guid.Empty)
                 {
                     PacketSender.SendAnimationToProximity(
-                        Base.AnimationId, -1, Guid.Empty, MapId, (byte)X, (byte)Y, (int)Directions.Up, MapInstanceId
+                        Base.AnimationId, -1, Guid.Empty, MapId, X, Y, Direction.Up, MapInstanceId
                     );
                 }
             }
@@ -85,8 +83,8 @@ namespace Intersect.Server.Entities
                 Base.MaxHp = Base.MinHp;
             }
 
-            SetMaxVital(Vitals.Health, Randomization.Next(Base.MinHp, Base.MaxHp + 1));
-            RestoreVital(Vitals.Health);
+            SetMaxVital(Vital.Health, Randomization.Next(Base.MinHp, Base.MaxHp + 1));
+            RestoreVital(Vital.Health);
             Passable = Base.WalkableBefore;
             Items.Clear();
 
@@ -188,7 +186,7 @@ namespace Intersect.Server.Entities
                     return;
                 }
                 
-                var vital = Vitals.Health;
+                var vital = Vital.Health;
 
                 var vitalId = (int) vital;
                 var vitalValue = GetVital(vital);
@@ -225,9 +223,9 @@ namespace Intersect.Server.Entities
             return pkt;
         }
 
-        public override EntityTypes GetEntityType()
+        public override EntityType GetEntityType()
         {
-            return EntityTypes.Resource;
+            return EntityType.Resource;
         }
     }
 

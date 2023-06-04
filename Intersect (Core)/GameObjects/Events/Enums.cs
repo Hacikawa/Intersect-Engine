@@ -1,4 +1,4 @@
-﻿namespace Intersect.GameObjects.Events
+namespace Intersect.GameObjects.Events
 {
 
     public enum MoveRouteEnum
@@ -94,6 +94,13 @@
 
         SetAnimation,
 
+        MoveUpLeft,
+
+        MoveUpRight,
+
+        MoveDownRight,
+
+        MoveDownLeft,
     }
 
     //ONLY ADD TO THE END OF THIS LIST ELSE FACE THE WRATH OF JC!!!!!

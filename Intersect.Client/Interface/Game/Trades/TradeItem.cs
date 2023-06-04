@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 using Intersect.Client.Framework.GenericClasses;
 using Intersect.Client.Framework.Gwen.Control;
@@ -110,7 +110,7 @@ namespace Intersect.Client.Interface.Game.Trades
                 return;
             }
 
-            mClickTime = Timing.Global.Milliseconds + 500;
+            mClickTime = Timing.Global.MillisecondsUtc + 500;
         }
 
         void pnl_HoverLeave(Base sender, EventArgs arguments)
@@ -151,7 +151,7 @@ namespace Intersect.Client.Interface.Game.Trades
             {
                 mDescWindow = new ItemDescriptionWindow(
                     Globals.Trade[mMySide, mMySlot].Base, Globals.Trade[mMySide, mMySlot].Quantity, mTradeWindow.X,
-                    mTradeWindow.Y, Globals.Trade[mMySide, mMySlot].StatBuffs
+                    mTradeWindow.Y, Globals.Trade[mMySide, mMySlot].ItemProperties
                 );
             }
         }
@@ -214,7 +214,7 @@ namespace Intersect.Client.Interface.Game.Trades
 
                         mMouseX = -1;
                         mMouseY = -1;
-                        if (Timing.Global.Milliseconds < mClickTime)
+                        if (Timing.Global.MillisecondsUtc < mClickTime)
                         {
                             mClickTime = 0;
                         }

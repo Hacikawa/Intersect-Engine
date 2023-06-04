@@ -13,6 +13,18 @@ namespace Intersect.GameObjects
     {
 
         public const int MAX_PROJECTILE_DIRECTIONS = 8;
+        
+        public static readonly int[] ProjectileRotationDir =
+        {
+            0, 1, 2, 3, 4, 5, 6, 7, // Up
+            1, 0, 3, 2, 7, 6, 4, 5, // Down
+            2, 3, 1, 0, 7, 4, 5, 6, // Left
+            3, 2, 0, 1, 5, 6, 7, 4, // Right
+            4, 6, 7, 5, 2, 0, 3, 1, // UpLeft
+            5, 7, 4, 6, 0, 3, 1, 2, // UpRight
+            6, 4, 5, 7, 3, 1, 2, 0, // DownRight
+            7, 5, 6, 4, 1, 2, 0, 3 // DownLeft
+        };
 
         public const int SPAWN_LOCATIONS_HEIGHT = 5;
 
@@ -100,7 +112,7 @@ namespace Intersect.GameObjects
         }
 
         [NotMapped]
-        public List<GrappleOptions> GrappleHookOptions = new List<GrappleOptions>();
+        public List<GrappleOption> GrappleHookOptions = new List<GrappleOption>();
 
         [JsonIgnore]
         [Column("GrappleHookOptions")]
@@ -109,7 +121,7 @@ namespace Intersect.GameObjects
             get => JsonConvert.SerializeObject(GrappleHookOptions);
             set
             {
-                GrappleHookOptions = JsonConvert.DeserializeObject<List<GrappleOptions>>(value ?? "") ?? new List<GrappleOptions>();
+                GrappleHookOptions = JsonConvert.DeserializeObject<List<GrappleOption>>(value ?? "") ?? new List<GrappleOption>();
             }
         }
 
